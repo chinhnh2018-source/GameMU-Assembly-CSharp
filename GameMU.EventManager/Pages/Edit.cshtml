@@ -2,21 +2,26 @@
 @model EditModel
 @{
     var def = Model.Def;
-    ViewData["Title"] = (Model.IsNew ? "Them moi - " : "Sua - ") + (def?.DisplayName ?? "");
+    ViewData["Title"] = (Model.IsNew ? "Thêm mới - " : "Sửa - ") + (def?.DisplayName ?? "");
 }
 
-@if (def == null) { <div class="alert alert-danger">Khong tim thay cau hinh.</div> return; }
+@if (def == null) { <div class="alert alert-danger">Không tìm thấy cấu hình.</div> return; }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-page="/Index">Trang chu</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Index">Trang chủ</a></li>
         <li class="breadcrumb-item"><a asp-page="/File" asp-route-key="@def.Key">@def.DisplayName</a></li>
-        <li class="breadcrumb-item active">@(Model.IsNew ? "Them moi" : "Sua #" + Model.Id)</li>
+        <li class="breadcrumb-item active">@(Model.IsNew ? "Thêm mới" : "Sửa #" + Model.Id)</li>
     </ol>
 </nav>
 
-<h4 class="mb-1">@(Model.IsNew ? "Them muc moi" : "Chinh sua muc " + Model.Id)</h4>
-<div class="small text-secondary mb-3"><code>@def.RelativePath</code> &middot; the <code>&lt;@def.ItemElement&gt;</code></div>
+<h4 class="mb-1">@(Model.IsNew ? "Thêm mục mới" : "Chỉnh sửa mục " + Model.Id)</h4>
+<div class="small text-secondary mb-3"><code>@def.RelativePath</code> &middot; thẻ <code>&lt;@def.ItemElement&gt;</code></div>
+
+@if (!string.IsNullOrEmpty(Model.Comment))
+{
+    <div class="alert alert-info py-2"><i class="bi bi-translate"></i> <b>Chú thích gốc:</b> @Model.Comment</div>
+}
 
 <form method="post" asp-route-key="@def.Key" asp-route-id="@Model.Id">
     <div class="row g-3">
@@ -25,11 +30,11 @@
             var val = Model.Values.GetValueOrDefault(f, "");
             var help = Model.Label(f);
             var isId = f == def.IdAttr;
-            var isLong = val.Length > 60 || f.StartsWith("Goods") || f.Contains("Time") || f == "List" || f == "Intro";
+            var isLong = val.Length > 60 || f.StartsWith("Goods") || f.Contains("Time") || f == "List" || f == "Intro" || f == "Value";
             <div class="@(isLong ? "col-12" : "col-md-6 col-lg-4")">
                 <label class="form-label mb-0">
                     <b>@f</b>
-                    @if (isId) { <span class="badge bg-warning text-dark ms-1">khoa</span> }
+                    @if (isId) { <span class="badge bg-warning text-dark ms-1">khóa</span> }
                 </label>
                 @if (help != null) { <div class="attr-help mb-1">@help</div> }
                 @if (isLong)
@@ -48,24 +53,25 @@
     @if (Model.IsNew)
     {
         <div class="mt-3 p-3 border border-secondary rounded">
-            <div class="small text-secondary mb-2">Them thuoc tinh tu do (neu file co thuoc tinh chua liet ke):</div>
+            <div class="small text-secondary mb-2">Thêm thuộc tính tự do (nếu file có thuộc tính chưa liệt kê):</div>
             <div class="row g-2 align-items-end">
-                <div class="col-md-4"><input class="form-control form-control-sm" id="newAttrName" placeholder="Ten thuoc tinh" /></div>
-                <div class="col-md-6"><input class="form-control form-control-sm" id="newAttrVal" placeholder="Gia tri" /></div>
-                <div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-light w-100" onclick="addAttr()">+ Them o</button></div>
+                <div class="col-md-4"><input class="form-control form-control-sm" id="newAttrName" placeholder="Tên thuộc tính" /></div>
+                <div class="col-md-6"><input class="form-control form-control-sm" id="newAttrVal" placeholder="Giá trị" /></div>
+                <div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-light w-100" onclick="addAttr()">+ Thêm ô</button></div>
             </div>
             <div id="extraAttrs" class="row g-3 mt-1"></div>
         </div>
     }
 
     <div class="mt-4 d-flex gap-2">
-        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Luu</button>
-        <a class="btn btn-outline-secondary" asp-page="/File" asp-route-key="@def.Key">Huy</a>
+        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Lưu</button>
+        <a class="btn btn-outline-secondary" asp-page="/File" asp-route-key="@def.Key">Hủy</a>
     </div>
 </form>
 
 <div class="mt-3 small text-secondary">
-    <i class="bi bi-shield-check"></i> File goc se duoc sao luu tu dong vao <code>_EventManager/backups/</code> truoc khi ghi de.
+    <i class="bi bi-shield-check"></i> File gốc sẽ được sao lưu tự động vào <code>_EventManager/backups/</code> trước khi ghi đè.
+    Định dạng (tab/space) và chú thích được giữ nguyên.
 </div>
 
 <script>

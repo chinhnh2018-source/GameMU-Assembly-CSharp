@@ -4,7 +4,13 @@ Web app C# (ASP.NET Core 8 / Razor Pages) để **quản lý sự kiện** của
 đọc và ghi trực tiếp các file XML trong `GameRes/GameRes/Config`.
 
 Cho phép: **xem danh sách sự kiện, lọc/tìm kiếm, sửa thuộc tính, thêm mới, xoá, và BẬT/TẮT từng sự kiện** —
-mọi thay đổi đều **tự động sao lưu** trước khi ghi đè.
+mọi thay đổi đều **tự động sao lưu** trước khi ghi đè. Toàn bộ giao diện **tiếng Việt có dấu**.
+
+Ngoài quản lý sự kiện, web app còn có:
+- **Trình quản lý `SystemParams.xml`** (từ điển ~939 tham số điều khiển cường hóa/truy gia/truyền thừa/cánh...),
+  có tìm kiếm và hiển thị **chú thích gốc**; khi lưu **giữ nguyên định dạng (tab) và toàn bộ comment**.
+- **Bản đồ Tính năng → XML** (`/Features`): danh sách 186 lớp quản lý của GameServer và các file XML mà mỗi
+  tính năng đọc — sinh từ việc **quét mã nguồn `GameServer`**.
 
 ---
 

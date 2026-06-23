@@ -1,13 +1,13 @@
 @page
 @model BackupsModel
-@{ ViewData["Title"] = "Sao luu"; }
+@{ ViewData["Title"] = "Sao lưu"; }
 
-<h4><i class="bi bi-clock-history"></i> Sao luu gan day</h4>
-<p class="small text-secondary">Luu tai: <code>@Model.Root/_EventManager/backups/</code> (hien 50 ban moi nhat). Muon khoi phuc, chep file <code>.bak</code> de len file goc.</p>
+<h4><i class="bi bi-clock-history"></i> Sao lưu gần đây</h4>
+<p class="small text-secondary">Lưu tại: <code>@Model.Root/_EventManager/backups/</code> (hiện 50 bản mới nhất). Muốn khôi phục, chép file <code>.bak</code> đè lên file gốc.</p>
 
 <div class="table-responsive">
     <table class="table table-dark table-sm table-striped">
-        <thead><tr><th>#</th><th>Ten file sao luu</th></tr></thead>
+        <thead><tr><th>#</th><th>Tên file sao lưu</th></tr></thead>
         <tbody>
         @for (int i = 0; i < Model.Backups.Count; i++)
         {
@@ -15,7 +15,7 @@
         }
         @if (Model.Backups.Count == 0)
         {
-            <tr><td colspan="2" class="text-center text-secondary py-3">Chua co ban sao luu nao.</td></tr>
+            <tr><td colspan="2" class="text-center text-secondary py-3">Chưa có bản sao lưu nào.</td></tr>
         }
         </tbody>
     </table>

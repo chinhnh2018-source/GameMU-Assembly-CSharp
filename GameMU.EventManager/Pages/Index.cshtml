@@ -1,19 +1,19 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Trang chu";
+    ViewData["Title"] = "Trang chủ";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0"><i class="bi bi-calendar-event text-warning"></i> Quan ly su kien</h3>
-    <span class="text-secondary small">Nguon: <code>@Model.ConfigRoot</code></span>
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-calendar-event text-warning"></i> Quản lý sự kiện</h3>
+    <span class="text-secondary small">Nguồn: <code>@Model.ConfigRoot</code></span>
 </div>
 
 @if (!Model.RootExists)
 {
     <div class="alert alert-warning">
-        <b>Khong tim thay thu muc cau hinh.</b> Hay sua <code>EventManager:GameResConfigPath</code> trong <code>appsettings.json</code>
-        tro toi <code>GameRes/GameRes/Config</code> cua GameServer. Hien tai: <code>@Model.ConfigRoot</code>
+        <b>Không tìm thấy thư mục cấu hình.</b> Hãy sửa <code>EventManager:GameResConfigPath</code> trong <code>appsettings.json</code>
+        trỏ tới <code>GameRes/GameRes/Config</code> của GameServer. Hiện tại: <code>@Model.ConfigRoot</code>
     </div>
 }
 else
@@ -34,16 +34,16 @@ else
                                 <div>
                                     @if (ok)
                                     {
-                                        <span class="badge bg-secondary">@Model.Counts.GetValueOrDefault(def.Key) muc</span>
+                                        <span class="badge bg-secondary">@Model.Counts.GetValueOrDefault(def.Key) mục</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger">thieu file</span>
+                                        <span class="badge bg-danger">thiếu file</span>
                                     }
-                                    <span class="badge bg-info-subtle text-info border border-info">@def.Toggle</span>
+                                    <span class="badge bg-info-subtle text-info border border-info">@ToggleLabel(def.Toggle)</span>
                                 </div>
                                 <a class="btn btn-sm btn-warning @(ok ? "" : "disabled")"
-                                   asp-page="/File" asp-route-key="@def.Key">Mo <i class="bi bi-arrow-right"></i></a>
+                                   asp-page="/File" asp-route-key="@def.Key">Mở <i class="bi bi-arrow-right"></i></a>
                             </div>
                         </div>
                     </div>
@@ -51,4 +51,14 @@ else
             }
         </div>
     }
+}
+
+@functions {
+    static string ToggleLabel(GameMU.EventManager.Models.ToggleStrategy t) => t switch
+    {
+        GameMU.EventManager.Models.ToggleStrategy.Flag => "Bật/tắt: cờ",
+        GameMU.EventManager.Models.ToggleStrategy.DateWindow => "Bật/tắt: khung ngày",
+        GameMU.EventManager.Models.ToggleStrategy.Park => "Bật/tắt: gỡ tạm",
+        _ => "Chỉ sửa"
+    };
 }

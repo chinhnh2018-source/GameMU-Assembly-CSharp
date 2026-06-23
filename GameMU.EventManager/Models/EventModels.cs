@@ -50,5 +50,6 @@ public class EventRecord
     public bool Enabled { get; set; } = true;
     public string Status { get; set; } = "";   // mo ta trang thai (vd "Dang chay", "Het han", "Tat")
     public bool Parked { get; set; }            // nam trong sidecar disabled
+    public string? Comment { get; set; }        // chu thich (XML comment) di kem, vd trong SystemParams.xml
     public Dictionary<string, string> Attributes { get; set; } = new();
 }

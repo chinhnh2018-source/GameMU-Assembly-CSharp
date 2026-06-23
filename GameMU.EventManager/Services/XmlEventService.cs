@@ -28,14 +28,8 @@ public class XmlEventService
     public string FullPath(EventFileDef def) => Path.Combine(_configRoot, def.RelativePath.Replace('/', Path.DirectorySeparatorChar));
     public bool FileExists(EventFileDef def) => File.Exists(FullPath(def));
 
-    private string StateDir
-    {
-        get { var d = Path.Combine(_configRoot, "_EventManager", "state"); Directory.CreateDirectory(d); return d; }
-    }
-    private string BackupDir
-    {
-        get { var d = Path.Combine(_configRoot, "_EventManager", "backups"); Directory.CreateDirectory(d); return d; }
-    }
+    private string StateDir { get { var d = Path.Combine(_configRoot, "_EventManager", "state"); Directory.CreateDirectory(d); return d; } }
+    private string BackupDir { get { var d = Path.Combine(_configRoot, "_EventManager", "backups"); Directory.CreateDirectory(d); return d; } }
     private string DisabledPath(EventFileDef def) => Path.Combine(StateDir, def.Key + ".disabled.xml");
     private string WindowStatePath(EventFileDef def) => Path.Combine(StateDir, def.Key + ".window.json");
 
@@ -56,7 +50,6 @@ public class XmlEventService
         foreach (var el in doc.Descendants(def.ItemElement))
             list.Add(BuildRecord(def, el, parked: false));
 
-        // Park strategy: them ban ghi da tat tu sidecar.
         if (def.Toggle == ToggleStrategy.Park && File.Exists(DisabledPath(def)))
         {
             var ddoc = XDocument.Load(DisabledPath(def), LoadOptions.PreserveWhitespace);
@@ -76,7 +69,8 @@ public class XmlEventService
             Id = attrs.TryGetValue(def.IdAttr, out var id) ? id : "",
             Name = def.NameAttr != null && attrs.TryGetValue(def.NameAttr, out var nm) ? nm : "",
             Attributes = attrs,
-            Parked = parked
+            Parked = parked,
+            Comment = FindPrecedingComment(el)
         };
 
         switch (def.Toggle)
@@ -84,24 +78,35 @@ public class XmlEventService
             case ToggleStrategy.Flag:
                 var fv = attrs.TryGetValue(def.FlagAttr ?? "", out var v) ? v.Trim() : "";
                 rec.Enabled = fv == def.FlagOn;
-                rec.Status = rec.Enabled ? "Bat" : "Tat";
+                rec.Status = rec.Enabled ? "Bật" : "Tắt";
                 break;
             case ToggleStrategy.DateWindow:
                 var from = ParseDate(attrs.GetValueOrDefault(def.FromAttr));
                 var to = ParseDate(attrs.GetValueOrDefault(def.ToAttr));
                 var now = DateTime.Now;
-                if (from == null && to == null) { rec.Enabled = false; rec.Status = "Chua cau hinh"; }
-                else if (to != null && to.Value.Year <= 2001) { rec.Enabled = false; rec.Status = "Tat"; }
-                else if (from != null && now < from) { rec.Enabled = true; rec.Status = $"Chua bat dau ({from:dd/MM/yyyy})"; }
-                else if (to != null && now > to) { rec.Enabled = false; rec.Status = $"Het han ({to:dd/MM/yyyy})"; }
-                else { rec.Enabled = true; rec.Status = "Dang chay"; }
+                if (from == null && to == null) { rec.Enabled = false; rec.Status = "Chưa cấu hình"; }
+                else if (to != null && to.Value.Year <= 2001) { rec.Enabled = false; rec.Status = "Tắt"; }
+                else if (from != null && now < from) { rec.Enabled = true; rec.Status = $"Chưa bắt đầu ({from:dd/MM/yyyy})"; }
+                else if (to != null && now > to) { rec.Enabled = false; rec.Status = $"Hết hạn ({to:dd/MM/yyyy})"; }
+                else { rec.Enabled = true; rec.Status = "Đang chạy"; }
+                break;
+            case ToggleStrategy.None:
+                rec.Enabled = true;
+                rec.Status = "—";
                 break;
             default: // Park
                 rec.Enabled = !parked;
-                rec.Status = parked ? "Tat" : "Bat";
+                rec.Status = parked ? "Tắt" : "Bật";
                 break;
         }
         return rec;
+    }
+
+    private static string? FindPrecedingComment(XElement el)
+    {
+        var node = el.PreviousNode;
+        while (node is XText) node = node.PreviousNode; // bỏ qua whitespace
+        return node is XComment c ? c.Value.Trim() : null;
     }
 
     private static DateTime? ParseDate(string? s)
@@ -116,34 +121,33 @@ public class XmlEventService
     public EventRecord? GetRecord(EventFileDef def, string id) =>
         LoadRecords(def).FirstOrDefault(r => r.Id == id);
 
-    // ---------- Sua ----------
+    // ---------- Sửa (giữ nguyên định dạng + comment) ----------
 
     public void UpdateRecord(EventFileDef def, string id, Dictionary<string, string> values)
     {
         var rec = GetRecord(def, id);
         var path = rec is { Parked: true } ? DisabledPath(def) : FullPath(def);
         var doc = XDocument.Load(path, LoadOptions.PreserveWhitespace);
-        var el = FindById(doc, def, id) ?? throw new InvalidOperationException($"Khong tim thay ban ghi {id}");
-        foreach (var kv in values)
-            el.SetAttributeValue(kv.Key, kv.Value);
-        Save(def, doc, path);
+        var el = FindById(doc, def, id) ?? throw new InvalidOperationException($"Không tìm thấy bản ghi {id}");
+        foreach (var kv in values) el.SetAttributeValue(kv.Key, kv.Value);
+        SaveFaithful(def, doc, path);
     }
 
-    // ---------- Them moi ----------
+    // ---------- Thêm mới (định dạng lại sạch) ----------
 
     public void AddRecord(EventFileDef def, Dictionary<string, string> values)
     {
         var path = FullPath(def);
-        var doc = File.Exists(path) ? XDocument.Load(path, LoadOptions.PreserveWhitespace) : new XDocument();
-        var root = doc.Root ?? throw new InvalidOperationException("File khong co the goc");
+        var doc = File.Exists(path) ? XDocument.Load(path) : new XDocument();
+        var root = doc.Root ?? throw new InvalidOperationException("File không có thẻ gốc");
         var el = new XElement(def.ItemElement);
         foreach (var kv in values)
             if (!string.IsNullOrEmpty(kv.Key)) el.SetAttributeValue(kv.Key, kv.Value);
         root.Add(el);
-        Save(def, doc, path);
+        SaveClean(def, doc, path);
     }
 
-    // ---------- Xoa ----------
+    // ---------- Xóa (giữ nguyên định dạng, gỡ cả comment kèm theo) ----------
 
     public void DeleteRecord(EventFileDef def, string id)
     {
@@ -151,10 +155,21 @@ public class XmlEventService
         var path = rec is { Parked: true } ? DisabledPath(def) : FullPath(def);
         var doc = XDocument.Load(path, LoadOptions.PreserveWhitespace);
         var el = FindById(doc, def, id);
-        if (el != null) { el.Remove(); Save(def, doc, path); }
+        if (el == null) return;
+
+        // gỡ comment + whitespace đứng ngay trước (nếu có)
+        var prevWs = el.PreviousNode as XText;
+        var beforeWs = prevWs?.PreviousNode ?? el.PreviousNode;
+        if (beforeWs is XComment)
+        {
+            prevWs?.Remove();
+            beforeWs.Remove();
+        }
+        el.Remove();
+        SaveFaithful(def, doc, path);
     }
 
-    // ---------- Bat / Tat ----------
+    // ---------- Bật / Tắt ----------
 
     public void Toggle(EventFileDef def, string id, bool enable)
     {
@@ -170,21 +185,20 @@ public class XmlEventService
     {
         var path = FullPath(def);
         var doc = XDocument.Load(path, LoadOptions.PreserveWhitespace);
-        var el = FindById(doc, def, id) ?? throw new InvalidOperationException($"Khong tim thay {id}");
+        var el = FindById(doc, def, id) ?? throw new InvalidOperationException($"Không tìm thấy {id}");
         el.SetAttributeValue(def.FlagAttr, enable ? def.FlagOn : def.FlagOff);
-        Save(def, doc, path);
+        SaveFaithful(def, doc, path);
     }
 
     private void ToggleDateWindow(EventFileDef def, string id, bool enable)
     {
         var path = FullPath(def);
         var doc = XDocument.Load(path, LoadOptions.PreserveWhitespace);
-        var el = FindById(doc, def, id) ?? throw new InvalidOperationException($"Khong tim thay {id}");
+        var el = FindById(doc, def, id) ?? throw new InvalidOperationException($"Không tìm thấy {id}");
         var store = LoadWindowState(def);
 
         if (!enable)
         {
-            // luu lai khung hien tai roi dat ve qua khu
             store[id] = new[] { el.Attribute(def.FromAttr)?.Value ?? "", el.Attribute(def.ToAttr)?.Value ?? "" };
             el.SetAttributeValue(def.FromAttr, OffSentinel);
             el.SetAttributeValue(def.ToAttr, OffSentinel);
@@ -206,16 +220,16 @@ public class XmlEventService
             store.Remove(id);
         }
         SaveWindowState(def, store);
-        Save(def, doc, path);
+        SaveFaithful(def, doc, path);
     }
 
     private void TogglePark(EventFileDef def, string id, bool enable)
     {
         var livePath = FullPath(def);
         var disabledPath = DisabledPath(def);
-        var liveDoc = XDocument.Load(livePath, LoadOptions.PreserveWhitespace);
+        var liveDoc = XDocument.Load(livePath);
         var disDoc = File.Exists(disabledPath)
-            ? XDocument.Load(disabledPath, LoadOptions.PreserveWhitespace)
+            ? XDocument.Load(disabledPath)
             : new XDocument(new XElement(liveDoc.Root!.Name));
 
         if (enable)
@@ -229,8 +243,8 @@ public class XmlEventService
             if (el != null) { el.Remove(); disDoc.Root!.Add(el); }
         }
         BackupOnce(def, livePath);
-        WriteDoc(liveDoc, livePath);
-        WriteDoc(disDoc, disabledPath);
+        WriteDoc(liveDoc, livePath, indent: true);
+        WriteDoc(disDoc, disabledPath, indent: true);
     }
 
     // ---------- Helpers ----------
@@ -248,29 +262,32 @@ public class XmlEventService
     private void SaveWindowState(EventFileDef def, Dictionary<string, string[]> s) =>
         File.WriteAllText(WindowStatePath(def), JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true }));
 
-    private void Save(EventFileDef def, XDocument doc, string path)
+    private void SaveFaithful(EventFileDef def, XDocument doc, string path)
     {
         BackupOnce(def, path);
-        WriteDoc(doc, path);
+        WriteDoc(doc, path, indent: false); // giữ nguyên whitespace/tab/comment gốc, chỉ đổi thuộc tính đã sửa
+    }
+    private void SaveClean(EventFileDef def, XDocument doc, string path)
+    {
+        BackupOnce(def, path);
+        WriteDoc(doc, path, indent: true);
     }
 
     private void BackupOnce(EventFileDef def, string path)
     {
         if (!File.Exists(path)) return;
         var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-        var name = $"{def.Key}__{Path.GetFileName(path)}__{stamp}.bak";
-        File.Copy(path, Path.Combine(BackupDir, name), overwrite: true);
+        File.Copy(path, Path.Combine(BackupDir, $"{def.Key}__{Path.GetFileName(path)}__{stamp}.bak"), overwrite: true);
     }
 
-    private static void WriteDoc(XDocument doc, string path)
+    private static void WriteDoc(XDocument doc, string path, bool indent)
     {
-        if (doc.Declaration == null)
-            doc.Declaration = new XDeclaration("1.0", "utf-8", null);
+        doc.Declaration ??= new XDeclaration("1.0", "utf-8", null);
         var settings = new XmlWriterSettings
         {
-            Indent = true,
+            Indent = indent,
             IndentChars = "  ",
-            Encoding = new UTF8Encoding(true), // UTF-8 BOM nhu file goc
+            Encoding = new UTF8Encoding(true), // UTF-8 BOM như file gốc
             OmitXmlDeclaration = false
         };
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);

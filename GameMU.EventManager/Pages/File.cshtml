@@ -7,13 +7,18 @@
 
 @if (def == null)
 {
-    <div class="alert alert-danger">Khong tim thay cau hinh.</div>
+    <div class="alert alert-danger">Không tìm thấy cấu hình.</div>
     return;
+}
+
+@{
+    var canToggle = def.Toggle != GameMU.EventManager.Models.ToggleStrategy.None;
+    var hasComment = Model.Records.Any(r => !string.IsNullOrEmpty(r.Comment));
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-page="/Index">Trang chu</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Index">Trang chủ</a></li>
         <li class="breadcrumb-item"><span class="text-secondary">@def.Category</span></li>
         <li class="breadcrumb-item active">@def.DisplayName</li>
     </ol>
@@ -22,10 +27,10 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
     <div>
         <h4 class="mb-0">@def.DisplayName</h4>
-        <div class="small text-secondary"><code>@def.RelativePath</code> &middot; the <code>&lt;@def.ItemElement&gt;</code> &middot; bat/tat: <b>@def.Toggle</b></div>
+        <div class="small text-secondary"><code>@def.RelativePath</code> &middot; thẻ <code>&lt;@def.ItemElement&gt;</code></div>
     </div>
     <div class="d-flex gap-2">
-        <a class="btn btn-success btn-sm" asp-page="/Edit" asp-route-key="@def.Key"><i class="bi bi-plus-lg"></i> Them moi</a>
+        <a class="btn btn-success btn-sm" asp-page="/Edit" asp-route-key="@def.Key"><i class="bi bi-plus-lg"></i> Thêm mới</a>
     </div>
 </div>
 
@@ -37,76 +42,96 @@
 <form method="get" class="row g-2 mb-3">
     <input type="hidden" name="key" value="@def.Key" />
     <div class="col-sm-6 col-md-4">
-        <input class="form-control form-control-sm" name="q" value="@Model.Q" placeholder="Tim theo ma / ten / gia tri..." />
+        <input class="form-control form-control-sm" name="q" value="@Model.Q" placeholder="Tìm theo mã / tên / giá trị..." />
     </div>
-    <div class="col-auto">
-        <select class="form-select form-select-sm" name="state" onchange="this.form.submit()">
-            <option value="all" selected="@(Model.State is null or "all")">Tat ca</option>
-            <option value="on" selected="@(Model.State == "on")">Dang bat</option>
-            <option value="off" selected="@(Model.State == "off")">Dang tat</option>
-        </select>
-    </div>
-    <div class="col-auto"><button class="btn btn-sm btn-outline-light">Loc</button></div>
-    <div class="col-auto d-flex align-items-center text-secondary small">@Model.Records.Count muc</div>
+    @if (canToggle)
+    {
+        <div class="col-auto">
+            <select class="form-select form-select-sm" name="state" onchange="this.form.submit()">
+                <option value="all" selected="@(Model.State is null or "all")">Tất cả</option>
+                <option value="on" selected="@(Model.State == "on")">Đang bật</option>
+                <option value="off" selected="@(Model.State == "off")">Đang tắt</option>
+            </select>
+        </div>
+    }
+    <div class="col-auto"><button class="btn btn-sm btn-outline-light">Lọc</button></div>
+    <div class="col-auto d-flex align-items-center text-secondary small">@Model.Records.Count mục</div>
 </form>
 
 <div class="table-responsive">
     <table class="table table-dark table-striped table-hover table-sm align-middle">
         <thead class="sticky-actions">
             <tr>
-                <th style="width:90px">Trang thai</th>
+                @if (canToggle)
+                {
+                    <th style="width:90px">Trạng thái</th>
+                }
                 @foreach (var c in def.ListColumns)
                 {
                     <th>@c</th>
                 }
-                <th style="width:170px" class="text-end">Thao tac</th>
+                @if (hasComment)
+                {
+                    <th>Chú thích</th>
+                }
+                <th style="width:170px" class="text-end">Thao tác</th>
             </tr>
         </thead>
         <tbody>
         @foreach (var r in Model.Records)
         {
             <tr>
-                <td>
-                    @if (r.Enabled)
-                    {
-                        <span class="badge bg-success">@r.Status</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">@r.Status</span>
-                    }
-                </td>
+                @if (canToggle)
+                {
+                    <td>
+                        @if (r.Enabled)
+                        {
+                            <span class="badge bg-success">@r.Status</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">@r.Status</span>
+                        }
+                    </td>
+                }
                 @foreach (var c in def.ListColumns)
                 {
                     var val = r.Attributes.GetValueOrDefault(c, "");
                     <td title="@val">@(val.Length > 48 ? val.Substring(0, 48) + "…" : val)</td>
                 }
+                @if (hasComment)
+                {
+                    <td class="small text-info" title="@r.Comment">@(r.Comment != null && r.Comment.Length > 40 ? r.Comment.Substring(0,40)+"…" : r.Comment)</td>
+                }
                 <td class="text-end text-nowrap">
-                    <form method="post" class="d-inline">
-                        <input type="hidden" name="key" value="@def.Key" />
-                        <input type="hidden" name="id" value="@r.Id" />
-                        @if (r.Enabled)
-                        {
-                            <input type="hidden" name="enable" value="false" />
-                            <button asp-page-handler="Toggle" class="btn btn-sm btn-outline-warning" title="Tat">
-                                <i class="bi bi-toggle-on"></i>
-                            </button>
-                        }
-                        else
-                        {
-                            <input type="hidden" name="enable" value="true" />
-                            <button asp-page-handler="Toggle" class="btn btn-sm btn-outline-success" title="Bat">
-                                <i class="bi bi-toggle-off"></i>
-                            </button>
-                        }
-                    </form>
-                    <a class="btn btn-sm btn-outline-info" asp-page="/Edit" asp-route-key="@def.Key" asp-route-id="@r.Id" title="Sua">
+                    @if (canToggle)
+                    {
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="key" value="@def.Key" />
+                            <input type="hidden" name="id" value="@r.Id" />
+                            @if (r.Enabled)
+                            {
+                                <input type="hidden" name="enable" value="false" />
+                                <button asp-page-handler="Toggle" class="btn btn-sm btn-outline-warning" title="Tắt">
+                                    <i class="bi bi-toggle-on"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <input type="hidden" name="enable" value="true" />
+                                <button asp-page-handler="Toggle" class="btn btn-sm btn-outline-success" title="Bật">
+                                    <i class="bi bi-toggle-off"></i>
+                                </button>
+                            }
+                        </form>
+                    }
+                    <a class="btn btn-sm btn-outline-info" asp-page="/Edit" asp-route-key="@def.Key" asp-route-id="@r.Id" title="Sửa">
                         <i class="bi bi-pencil"></i>
                     </a>
-                    <form method="post" class="d-inline" onsubmit="return confirm('Xoa han muc @r.Id?');">
+                    <form method="post" class="d-inline" onsubmit="return confirm('Xóa hẳn mục @r.Id?');">
                         <input type="hidden" name="key" value="@def.Key" />
                         <input type="hidden" name="id" value="@r.Id" />
-                        <button asp-page-handler="Delete" class="btn btn-sm btn-outline-danger" title="Xoa">
+                        <button asp-page-handler="Delete" class="btn btn-sm btn-outline-danger" title="Xóa">
                             <i class="bi bi-trash"></i>
                         </button>
                     </form>
@@ -115,7 +140,7 @@
         }
         @if (Model.Records.Count == 0)
         {
-            <tr><td colspan="@(def.ListColumns.Length + 2)" class="text-center text-secondary py-4">Khong co muc nao.</td></tr>
+            <tr><td colspan="@(def.ListColumns.Length + 3)" class="text-center text-secondary py-4">Không có mục nào.</td></tr>
         }
         </tbody>
     </table>
