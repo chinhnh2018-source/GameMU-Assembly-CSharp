@@ -15,6 +15,8 @@ public class EditModel : PageModel
     public List<string> Fields { get; private set; } = new();
     public Dictionary<string, string> Values { get; private set; } = new();
     public string? Comment { get; private set; }
+    // FK mapping: field -> target key (for badge hints)
+    public Dictionary<string, string?> FkTargets { get; } = new();
 
     [BindProperty(SupportsGet = true)] public string Key { get; set; } = "";
     [BindProperty(SupportsGet = true)] public string? Id { get; set; }
@@ -24,6 +26,10 @@ public class EditModel : PageModel
         var def = EventRegistry.Get(Key);
         if (def == null) return NotFound();
         Def = def;
+
+        // Build FK targets map
+        foreach (var fk in def.ForeignKeys)
+            FkTargets[fk.Field] = string.IsNullOrEmpty(fk.TargetKey) ? null : fk.TargetKey;
 
         if (string.IsNullOrEmpty(Id))
         {

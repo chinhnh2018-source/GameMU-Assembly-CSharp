@@ -31,10 +31,22 @@
             var help = Model.Label(f);
             var isId = f == def.IdAttr;
             var isLong = val.Length > 60 || f.StartsWith("Goods") || f.Contains("Time") || f == "List" || f == "Intro" || f == "Value";
+            var isFk = Model.FkTargets.ContainsKey(f);
+            var fkTarget = isFk ? Model.FkTargets[f] : null;
             <div class="@(isLong ? "col-12" : "col-md-6 col-lg-4")">
                 <label class="form-label mb-0">
                     <b>@f</b>
                     @if (isId) { <span class="badge bg-warning text-dark ms-1">khóa</span> }
+                    @if (isFk && fkTarget != null)
+                    {
+                        <a class="badge bg-info text-dark ms-1 text-decoration-none" asp-page="/File" asp-route-key="@fkTarget" title="Mở file đích để tra ID">
+                            <i class="bi bi-share"></i> liên kết
+                        </a>
+                    }
+                    else if (isFk)
+                    {
+                        <span class="badge bg-info-subtle text-info border border-info ms-1" title="Tham chiếu mã vật phẩm Goods.xml">goods</span>
+                    }
                 </label>
                 @if (help != null) { <div class="attr-help mb-1">@help</div> }
                 @if (isLong)

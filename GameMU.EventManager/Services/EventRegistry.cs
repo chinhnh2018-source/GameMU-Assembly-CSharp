@@ -24,7 +24,11 @@ public static class EventRegistry
             Category="Lịch sự kiện", ItemElement="EventCalendar", IdAttr="ID", NameAttr="EventName",
             Description="Các sự kiện định kỳ theo thứ/khung giờ (Blood Castle, Devil Square...). Tắt = gỡ khỏi lịch (bảo lưu để bật lại).",
             ListColumns=new[]{"ID","EventName","Weekday","Level","LinkID","EventAward"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="LinkID", TargetKey="activity-copy", Description="Liên kết tới phụ bản tương ứng", MultiValue=false },
+                new() { Field="EventAward", TargetKey="", Description="Mã vật phẩm thưởng (cần Goods.xml)", MultiValue=true, MultiSeparator=',' }
+            }
         },
 
         // ===== Hoạt động đặc biệt =====
@@ -33,7 +37,13 @@ public static class EventRegistry
             Category="Hoạt động đặc biệt", ItemElement="Activity", IdAttr="ID", NameAttr="Name",
             Description="Các gói/ưu đãi đặc biệt, gom theo GroupID. Thời gian chạy nằm ở file 'Khung thời gian'.",
             ListColumns=new[]{"ID","GroupID","Name","Type","Price","PurchaseNum"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="GroupID", TargetKey="special-activity-time", Description="GroupID ghép với khung thời gian FromDate/ToDate", MultiValue=false },
+                new() { Field="GoodsOne", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true },
+                new() { Field="GoodsTwo", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true },
+                new() { Field="GoodsThr", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true }
+            }
         },
         new() {
             Key="special-activity-time", RelativePath="SpecialActivity/SpecialActivityTime.xml", DisplayName="Hoạt động đặc biệt - Khung thời gian",
@@ -49,13 +59,23 @@ public static class EventRegistry
             Category="Hoạt động hằng ngày", ItemElement="EveryDayActivity", IdAttr="ActivityID", NameAttr="Name",
             Description="Phần thưởng/mục tiêu hằng ngày theo GoalType.",
             ListColumns=new[]{"ActivityID","Name","GoalType","GoalNum","Price","PurchaseNum"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="GoalType", TargetKey="everyday-activity-type", Description="Loại mục tiêu (tra TypeID)", MultiValue=false },
+                new() { Field="GoodsOne", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true },
+                new() { Field="GoodsTwo", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true },
+                new() { Field="GoodsThr", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true }
+            }
         },
         new() {
             Key="everyday-activity-group", RelativePath="EveryDayActivity/EveryDayActivityGroup.xml", DisplayName="Hoạt động hằng ngày - Nhóm",
             Category="Hoạt động hằng ngày", ItemElement="EveryDayActivityGroup", IdAttr="GroupID", NameAttr="Name",
             ListColumns=new[]{"GroupID","TypeID","Name","NeedType","NeedNum","ActivityID"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="TypeID", TargetKey="everyday-activity-type", Description="Loại hoạt động hằng ngày", MultiValue=false },
+                new() { Field="ActivityID", TargetKey="everyday-activity", Description="Danh sách ActivityID cách nhau bởi '|'", MultiValue=true, MultiSeparator='|' }
+            }
         },
         new() {
             Key="everyday-activity-type", RelativePath="EveryDayActivity/EveryDayActivityType.xml", DisplayName="Hoạt động hằng ngày - Loại",
@@ -92,19 +112,29 @@ public static class EventRegistry
             Key="theme-type", RelativePath="ThemeActivityType.xml", DisplayName="Sự kiện chủ đề - Loại",
             Category="Sự kiện chủ đề", ItemElement="ThemeActivityType", IdAttr="ID", NameAttr="Name",
             ListColumns=new[]{"ID","Type","Name","EndData"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="PeiZhi", TargetKey="", Description="ID vật phẩm trong Goods.xml nếu PeiZhi là số", MultiValue=false }
+            }
         },
         new() {
             Key="theme-zhigou", RelativePath="ThemeActivityZhiGou.xml", DisplayName="Sự kiện chủ đề - Gói nạp (ZhiGou)",
             Category="Sự kiện chủ đề", ItemElement="ThemeActivityZhiGou", IdAttr="ID", NameAttr=null,
             ListColumns=new[]{"ID","Day","ZhiGouID","ChongZhiID","SinglePurchase"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="GoodsOne", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true },
+                new() { Field="GoodsTwo", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm)", ParseRewardList=true }
+            }
         },
         new() {
             Key="theme-boss", RelativePath="ThemeActivityBOSS.xml", DisplayName="Sự kiện chủ đề - BOSS",
             Category="Sự kiện chủ đề", ItemElement="ThemeActivityBOSS", IdAttr="ID", NameAttr=null,
             ListColumns=new[]{"ID","MonstersID","MapCode","Num","TimePoints"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="GoodsList", TargetKey="", Description="Vật phẩm rơi (id đầu cụm '|')", ParseRewardList=true }
+            }
         },
         new() {
             Key="theme-zhuansheng", RelativePath="ThemeActivityZhuanSheng.xml", DisplayName="Sự kiện chủ đề - Chuyển sinh",
@@ -127,7 +157,10 @@ public static class EventRegistry
             Key="sevenday-goal", RelativePath="SevenDay/SevenDayGoal.xml", DisplayName="7 ngày - Mục tiêu",
             Category="Sự kiện 7 ngày", ItemElement="Goal", IdAttr="ID", NameAttr="Describe",
             ListColumns=new[]{"ID","Day","GoalType","FunctionType","Describe","ShowNum"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="Award", TargetKey="", Description="Vật phẩm thưởng (id đầu cụm '|')", ParseRewardList=true }
+            }
         },
         new() {
             Key="sevenday-type", RelativePath="SevenDay/SevenDayActivityType.xml", DisplayName="7 ngày - Loại hoạt động",
@@ -139,7 +172,10 @@ public static class EventRegistry
             Key="sevenday-qianggou", RelativePath="SevenDay/SevenDayQiangGou.xml", DisplayName="7 ngày - Mua giới hạn",
             Category="Sự kiện 7 ngày", ItemElement="Goods", IdAttr="ID", NameAttr="Name",
             ListColumns=new[]{"ID","Day","Name","GoodsID","Price","Purchase"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="GoodsID", TargetKey="", Description="ID vật phẩm trong Goods.xml", MultiValue=false }
+            }
         },
 
         // ===== Tab hoạt động =====
@@ -173,19 +209,28 @@ public static class EventRegistry
             Key="activity-copy", RelativePath="Activity/Copy.xml", DisplayName="Phụ bản hoạt động (Copy)",
             Category="Hoạt động khác", ItemElement="Copy", IdAttr="ID", NameAttr="Name",
             ListColumns=new[]{"Type","ID","Name","Level","MaxLevel"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="PublishID", TargetKey="activity-tip", Description="Gợi ý/giao diện tương ứng", MultiValue=false }
+            }
         },
         new() {
             Key="activity-boss", RelativePath="Activity/BossInfo.xml", DisplayName="BOSS hoạt động",
             Category="Hoạt động khác", ItemElement="Boss", IdAttr="ID", NameAttr="Description",
             ListColumns=new[]{"Type","ID","Level","Description","NpcID","Show"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="GoodsList", TargetKey="", Description="Vật phẩm rơi (id đầu mỗi cụm '|')", ParseRewardList=true }
+            }
         },
         new() {
             Key="activity-tip", RelativePath="Activity/ActivityTip.xml", DisplayName="Gợi ý hoạt động (Tip)",
             Category="Hoạt động khác", ItemElement="Tip", IdAttr="ID", NameAttr="Name",
             ListColumns=new[]{"ID","Name","MinLevel","WeekDays","StartDay","OpenDay"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                new() { Field="List", TargetKey="activity-copy", Description="ID phụ bản liên quan", MultiValue=false }
+            }
         },
     };
 

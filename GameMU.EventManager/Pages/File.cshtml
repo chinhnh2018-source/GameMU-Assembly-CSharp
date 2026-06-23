@@ -80,6 +80,7 @@
         <tbody>
         @foreach (var r in Model.Records)
         {
+            var hasBackRef = Model.BackRefs.TryGetValue(r.Id, out var bkRefs) && bkRefs.Count > 0;
             <tr>
                 @if (canToggle)
                 {
@@ -97,13 +98,34 @@
                 @foreach (var c in def.ListColumns)
                 {
                     var val = r.Attributes.GetValueOrDefault(c, "");
-                    <td title="@val">@(val.Length > 48 ? val.Substring(0, 48) + "…" : val)</td>
+                    var isFk = Model.FkFields.TryGetValue(c, out var fk);
+                    var targetDef = isFk && !string.IsNullOrEmpty(fk!.TargetKey) ? Model.TargetDefs.GetValueOrDefault(fk.TargetKey) : null;
+                    <td title="@val">
+                        @if (isFk && targetDef != null && !string.IsNullOrWhiteSpace(val))
+                        {
+                            <!-- FK -> link to target record -->
+                            <a class="link-info text-decoration-underline" asp-page="/File" asp-route-key="@targetDef.Key" asp-route-q="@val" title="@fk!.Description">
+                                @(val.Length > 30 ? val.Substring(0, 30) + "…" : val)
+                                <i class="bi bi-box-arrow-up-right small"></i>
+                            </a>
+                        }
+                        else if (isFk && string.IsNullOrEmpty(fk!.TargetKey) && !string.IsNullOrWhiteSpace(val))
+                        {
+                            <!-- Goods reference (no managed file) -->
+                            <span class="text-info" title="@fk.Description">@(val.Length > 30 ? val.Substring(0, 30) + "…" : val)</span>
+                            <span class="badge bg-info-subtle text-info border border-info ms-1" style="font-size:.6rem">goods</span>
+                        }
+                        else
+                        {
+                            @(val.Length > 48 ? val.Substring(0, 48) + "…" : val)
+                        }
+                    </td>
                 }
                 @if (hasComment)
                 {
                     <td class="small text-info" title="@r.Comment">@(r.Comment != null && r.Comment.Length > 40 ? r.Comment.Substring(0,40)+"…" : r.Comment)</td>
                 }
-                <td class="text-end text-nowrap">
+                <td class="text-end text-nowrap" style="width:70px; min-width:70px">
                     @if (canToggle)
                     {
                         <form method="post" class="d-inline">
@@ -137,6 +159,24 @@
                     </form>
                 </td>
             </tr>
+            @if (hasBackRef)
+            {
+                <tr class="backref-row">
+                    <td colspan="@(def.ListColumns.Length + 3)" class="p-0 border-0">
+                        <div class="small text-secondary px-3 py-1" style="background:#0d1117">
+                            <i class="bi bi-arrow-return-left"></i> <b>Được tham chiếu bởi:</b>
+                            @foreach (var br in bkRefs!)
+                            {
+                                <a class="badge bg-dark border border-info text-info me-1 text-decoration-none"
+                                   asp-page="/File" asp-route-key="@br.SourceDef.Key" asp-route-q="@br.SourceRec.Id"
+                                   title="@br.Description">
+                                    @br.SourceDef.DisplayName #@br.SourceRec.Id (@br.SourceField)
+                                </a>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
         }
         @if (Model.Records.Count == 0)
         {

@@ -38,6 +38,22 @@ public class EventFileDef
     // Cho DateWindow:
     public string FromAttr { get; init; } = "FromDate";
     public string ToAttr { get; init; } = "ToDate";
+    // Khoa ngoai: danh sach cac truong tham chieu -> file khac
+    public List<ForeignKeyRef> ForeignKeys { get; init; } = new();
+}
+
+/// <summary>
+/// Mo ta mot khoa ngoai: truong X cua file nay tham chieu toi file khac.
+/// </summary>
+public class ForeignKeyRef
+{
+    public string Field { get; init; } = "";           // ten truong trong file nay (vd "LinkID", "GroupID")
+    public string TargetKey { get; init; } = "";       // key cua file dich trong EventRegistry
+    public string TargetIdAttr { get; init; } = "ID";  // ten thuoc tinh ID ben file dich
+    public string Description { get; init; } = "";     // mo ta y nghia
+    public bool MultiValue { get; init; } = false;     // true neu truong chua nhieu ID (vd "8002,8014,8011")
+    public char MultiSeparator { get; init; } = ',';   // ky tu phan cach neu MultiValue=true
+    public bool ParseRewardList { get; init; } = false;// true neu truong kieu Goods "id,sl,...|id,sl,..."
 }
 
 /// <summary>
