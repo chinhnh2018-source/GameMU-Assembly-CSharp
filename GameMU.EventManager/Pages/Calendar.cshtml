@@ -1,0 +1,138 @@
+@page
+@model CalendarModel
+@{
+    ViewData["Title"] = "Lịch sự kiện";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-calendar-range text-warning"></i> Lịch sự kiện trực quan</h3>
+    <span class="text-secondary small">Gom mọi sự kiện theo khung ngày (FromDate/ToDate) trên một trục thời gian</span>
+</div>
+
+@if (!Model.RootExists)
+{
+    <div class="alert alert-warning">
+        <b>Không tìm thấy thư mục cấu hình.</b> Hãy sửa <code>EventManager:GameResConfigPath</code> trong <code>appsettings.json</code>.
+    </div>
+}
+else
+{
+    <!-- Chú thích trạng thái -->
+    <div class="d-flex flex-wrap gap-3 mb-3 small">
+        <span><span class="badge" style="background:#2ea043">&nbsp;</span> Đang chạy</span>
+        <span><span class="badge" style="background:#3b82f6">&nbsp;</span> Sắp chạy</span>
+        <span><span class="badge" style="background:#6b7280">&nbsp;</span> Đã kết thúc</span>
+        <span class="text-secondary ms-auto">
+            Khung hiển thị: <code>@Model.RangeStart.ToString("dd/MM/yyyy")</code> &rarr; <code>@Model.RangeEnd.ToString("dd/MM/yyyy")</code>
+        </span>
+    </div>
+
+    @if (Model.Overlaps.Any())
+    {
+        <div class="alert alert-danger">
+            <b><i class="bi bi-exclamation-octagon"></i> Phát hiện @Model.Overlaps.Count cặp sự kiện trùng khung giờ:</b>
+            <ul class="mb-0 mt-2 small">
+                @foreach (var o in Model.Overlaps)
+                {
+                    <li>
+                        <code>@o.FileName</code>:
+                        <b>@o.A.Name</b> (@o.A.From?.ToString("dd/MM HH:mm") - @o.A.To?.ToString("dd/MM HH:mm"))
+                        ⟷
+                        <b>@o.B.Name</b> (@o.B.From?.ToString("dd/MM HH:mm") - @o.B.To?.ToString("dd/MM HH:mm"))
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (!Model.Groups.Any())
+    {
+        <div class="alert alert-secondary">Chưa có sự kiện nào theo khung ngày đang/sắp/đã chạy.</div>
+    }
+
+    @foreach (var grp in Model.Groups)
+    {
+        <h5 class="mt-4 mb-2 text-info border-bottom border-secondary pb-1">@grp.Category</h5>
+        <div class="card bg-dark border-secondary">
+            <div class="card-body p-2 p-lg-3">
+                <div class="timeline-wrap">
+                    <!-- vạch "hiện tại" -->
+                    <div class="now-line" style="left: calc(220px + (100% - 220px) * @Model.NowPct().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) / 100);">
+                        <span class="now-label">Hiện tại</span>
+                    </div>
+                    @foreach (var it in grp.Items)
+                    {
+                        var color = it.Status switch
+                        {
+                            "running" => "#2ea043",
+                            "upcoming" => "#3b82f6",
+                            _ => "#6b7280"
+                        };
+                        <div class="tl-row">
+                            <div class="tl-label" title="@it.Name">
+                                <a class="text-light text-decoration-none" asp-page="/Edit" asp-route-key="@it.FileKey" asp-route-id="@it.Id">@it.Name</a>
+                            </div>
+                            <div class="tl-track">
+                                <div class="tl-bar"
+                                     style="left:@Model.LeftPct(it).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;
+                                            width:@Model.WidthPct(it).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)%;
+                                            background:@color;"
+                                     title="@it.From?.ToString("dd/MM/yyyy HH:mm") → @it.To?.ToString("dd/MM/yyyy HH:mm")">
+                                    <span class="tl-bar-text">@(it.From?.ToString("dd/MM") ?? "?") - @(it.To?.ToString("dd/MM") ?? "?")</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.Inactive.Any())
+    {
+        <h5 class="mt-4 mb-2 text-secondary border-bottom border-secondary pb-1">
+            <i class="bi bi-pause-circle"></i> Chưa cấu hình / Đã tắt (@Model.Inactive.Count)
+        </h5>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-2">
+            @foreach (var it in Model.Inactive)
+            {
+                <div class="col">
+                    <div class="d-flex justify-content-between align-items-center bg-dark border border-secondary rounded px-3 py-2">
+                        <div class="text-truncate">
+                            <a class="text-light text-decoration-none" asp-page="/Edit" asp-route-key="@it.FileKey" asp-route-id="@it.Id">@it.Name</a>
+                            <div class="small text-secondary">@it.Category</div>
+                        </div>
+                        <span class="badge @(it.Status == "off" ? "bg-secondary" : "bg-dark border border-secondary text-secondary")">
+                            @(it.Status == "off" ? "Đã tắt" : "Chưa cấu hình")
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+<style>
+    .timeline-wrap { position: relative; }
+    .tl-row { display: flex; align-items: center; height: 34px; }
+    .tl-label {
+        width: 220px; min-width: 220px; padding-right: 10px;
+        font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tl-track {
+        position: relative; flex-grow: 1; height: 24px;
+        background: #161b22; border-radius: 4px; border: 1px solid #21262d;
+    }
+    .tl-bar {
+        position: absolute; top: 1px; height: 22px; border-radius: 4px;
+        display: flex; align-items: center; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.4);
+        min-width: 8px;
+    }
+    .tl-bar-text { font-size: .7rem; color: #fff; padding: 0 6px; white-space: nowrap; opacity: .95; }
+    .now-line {
+        position: absolute; top: 0; bottom: 0; width: 2px; background: #f59e0b; z-index: 4;
+    }
+    .now-label {
+        position: absolute; top: -2px; left: 3px; font-size: .65rem; color: #f59e0b; white-space: nowrap;
+    }
+</style>
