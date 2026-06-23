@@ -19,7 +19,12 @@ namespace GameMU.EventManager.Services
         // Các trường chứa MỘT mã vật phẩm
         private static readonly string[] SingleGoodsKeys = { "GoodsID", "GoodsId", "ItemID", "ItemId" };
         // Các trường chứa DANH SÁCH quà dạng "id,sl,...|id,sl,..." (mã vật phẩm là số đầu mỗi cụm)
-        private static readonly string[] RewardListKeys = { "GoodsOne", "GoodsTwo", "GoodsThr", "Goods", "Award", "Awards", "EventAward", "AwardGoods" };
+        // Da doi soat dinh luong: ~100% gia tri cac truong nay khop Item.ID trong Goods.xml.
+        private static readonly string[] RewardListKeys = {
+            "GoodsOne", "GoodsTwo", "GoodsThr", "GoodsFour", "Goods", "GoodsList", "GoodsIDs",
+            "Award", "Awards", "EventAward", "AwardGoods", "DayAward",
+            "NeedGoods", "CostGoods", "Items"
+        };
 
         public XmlValidationService(string configRoot)
         {

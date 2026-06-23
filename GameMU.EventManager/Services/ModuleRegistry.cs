@@ -44,6 +44,10 @@ public static class ModuleRegistry
                 Description="Tỉ lệ, giới hạn, cường hóa, truyền thừa...",
                 Categories=new[]{ "Tham số hệ thống" } },
 
+        new() { Id="refdata", Name="Ánh xạ vật phẩm", Icon="box-seam",
+                Description="Bảng ánh xạ tiền tệ/điểm -> vật phẩm trong Goods.xml",
+                Categories=new[]{ "Ánh xạ vật phẩm" } },
+
         new() { Id="features", Name="Bản đồ tính năng → XML", Icon="diagram-3", Page="/Features",
                 Description="186 lớp GameServer ↔ file XML" },
 

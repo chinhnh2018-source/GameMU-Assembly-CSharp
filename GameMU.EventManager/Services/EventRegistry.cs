@@ -128,14 +128,22 @@ public static class EventRegistry
         new() {
             Key="theme-boss", RelativePath="ThemeActivityBOSS.xml", DisplayName="Sự kiện chủ đề - BOSS",
             Category="Sự kiện chủ đề", ItemElement="ThemeActivityBOSS", IdAttr="ID", NameAttr=null,
-            ListColumns=new[]{"ID","MonstersID","MapCode","Num","TimePoints"},
-            Toggle=ToggleStrategy.Park
+            ListColumns=new[]{"ID","MonstersID","MapCode","GoodsList","TimePoints"},
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                // Da doi soat: 100% gia tri (90021,90024,9999001...) la Item.ID trong Goods.xml.
+                new() { Field="GoodsList", TargetKey="", Description="Vật phẩm rơi (id đầu mỗi cụm '|') -> Goods.xml", ParseRewardList=true }
+            }
         },
         new() {
             Key="theme-zhuansheng", RelativePath="ThemeActivityZhuanSheng.xml", DisplayName="Sự kiện chủ đề - Chuyển sinh",
             Category="Sự kiện chủ đề", ItemElement="ThemeActivityZhuanSheng", IdAttr="ID", NameAttr=null,
             ListColumns=new[]{"ID","MonstersID","MapID","MinLevel","MaxLevel","TimePoints"},
-            Toggle=ToggleStrategy.Park
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                // Da doi soat: 100% khop Goods.xml.
+                new() { Field="GoodsList", TargetKey="", Description="Vật phẩm thưởng (id đầu mỗi cụm '|') -> Goods.xml", ParseRewardList=true }
+            }
         },
 
         // ===== Hoạt động hồi quy =====
@@ -209,14 +217,30 @@ public static class EventRegistry
         new() {
             Key="activity-boss", RelativePath="Activity/BossInfo.xml", DisplayName="BOSS hoạt động",
             Category="Hoạt động khác", ItemElement="Boss", IdAttr="ID", NameAttr="Description",
-            ListColumns=new[]{"Type","ID","Level","Description","NpcID","Show"},
-            Toggle=ToggleStrategy.Park
+            ListColumns=new[]{"Type","ID","Level","NpcID","GoodsList","Show"},
+            Toggle=ToggleStrategy.Park,
+            ForeignKeys=new() {
+                // Da doi soat: 100% gia tri (9999001,1005091...) la Item.ID trong Goods.xml.
+                new() { Field="GoodsList", TargetKey="", Description="Vật phẩm rơi (id mỗi cụm '|') -> Goods.xml", ParseRewardList=true }
+            }
         },
         new() {
             Key="activity-tip", RelativePath="Activity/ActivityTip.xml", DisplayName="Gợi ý hoạt động (Tip)",
             Category="Hoạt động khác", ItemElement="Tip", IdAttr="ID", NameAttr="Name",
             ListColumns=new[]{"ID","Name","MinLevel","WeekDays","StartDay","OpenDay"},
             Toggle=ToggleStrategy.Park
+        },
+
+        // ===== Ánh xạ tiền tệ / vật phẩm =====
+        new() {
+            Key="get-goods", RelativePath="GetGoods.xml", DisplayName="Ánh xạ loại tiền tệ -> Vật phẩm (GetGoods)",
+            Category="Ánh xạ vật phẩm", ItemElement="GetGoods", IdAttr="ID", NameAttr="Name",
+            Description="Bảng ánh xạ loại tiền tệ/điểm (Coin, Kim cương, Ma tinh...) sang Item.ID trong Goods.xml. Đã đối soát 100% khớp Goods.xml.",
+            ListColumns=new[]{"ID","Name","Goods"},
+            Toggle=ToggleStrategy.None,
+            ForeignKeys=new() {
+                new() { Field="Goods", TargetKey="", Description="Item.ID trong Goods.xml (vật phẩm đại diện loại tiền tệ)", MultiValue=false }
+            }
         },
     };
 

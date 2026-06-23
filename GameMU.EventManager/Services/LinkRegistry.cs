@@ -56,5 +56,17 @@ public static class LinkRegistry
             Description="Vật phẩm bán trong cửa hàng / tranh mua phải tồn tại trong Goods.xml.",
             LiveChecked=false
         },
+        new() {
+            SourceFile="GetGoods.xml", SourceField="Goods",
+            TargetFile="Goods.xml", TargetKey="Item.ID",
+            Description="Bảng ánh xạ loại tiền tệ/điểm (Coin, Kim cương, Ma tinh...) -> Item.ID đại diện trong Goods.xml. Đã đối soát 100% (19/19) khớp Goods.xml.",
+            LiveChecked=true
+        },
+        new() {
+            SourceFile="(nhiều file Config)", SourceField="GoodsList / GoodsOne~Thr / Award / NeedGoods / CostGoods / Items...",
+            TargetFile="Goods.xml", TargetKey="Item.ID",
+            Description="Quét định lượng toàn bộ Config: hàng trăm trường tham chiếu Item.ID trong Goods.xml với ~100% khớp (BossInfo.GoodsList, ThemeActivityBOSS.GoodsList, ZhiGou.GoodsOne, Fashion.Goods, ZaiZao.NeedGoods...). Trình quản lý dùng cùng cơ chế đối soát mã vật phẩm cho các trường này.",
+            LiveChecked=true
+        },
     };
 }
