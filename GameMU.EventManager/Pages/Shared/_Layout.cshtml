@@ -16,43 +16,67 @@
         .attr-help { font-size:.75rem; color:#8a93a2; }
         .sticky-actions { position: sticky; top: 0; z-index: 5; }
 
-        /* ===== Sidebar bên phải ===== */
-        .app-shell { display:flex; flex-direction:column; gap:1rem; }
+        /* ===== Bố cục có sidebar bên phải ===== */
+        .app-shell { display:flex; flex-direction:column; gap:1.25rem; }
         @@media (min-width: 992px) {
             .app-shell { flex-direction:row; align-items:flex-start; }
             .app-main { flex:1 1 auto; min-width:0; order:1; }
             .app-sidebar {
-                flex:0 0 290px; width:290px; order:2;
+                flex:0 0 300px; width:300px; order:2;
                 position:sticky; top:1rem; max-height:calc(100vh - 2rem); overflow-y:auto;
             }
         }
-        .app-sidebar .side-card { background:#151a21; border:1px solid #2a2f37; border-radius:.6rem; }
-        .app-sidebar .side-head {
-            font-size:.7rem; text-transform:uppercase; letter-spacing:.06em;
-            color:#8a93a2; padding:.5rem .85rem .25rem;
+
+        /* ===== Sidebar: liệt kê CHỨC NĂNG LỚN ===== */
+        .nav-head {
+            font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;
+            color:#6b7585; margin:.25rem .25rem .6rem;
         }
-        .app-sidebar a.side-link {
-            display:flex; align-items:center; gap:.5rem; padding:.4rem .85rem;
-            color:#cdd3da; text-decoration:none; font-size:.88rem; border-left:3px solid transparent;
+        .fn-item {
+            display:flex; gap:.75rem; align-items:flex-start;
+            padding:.7rem .8rem; margin-bottom:.5rem;
+            background:#151a21; border:1px solid #262c35; border-radius:.7rem;
+            color:#cdd3da; text-decoration:none; transition:all .12s;
         }
-        .app-sidebar a.side-link:hover { background:#1c222b; color:#fff; }
-        .app-sidebar a.side-link.active { background:#1f2630; color:#ffc107; border-left-color:#ffc107; }
-        .app-sidebar details { border-top:1px solid #21262d; }
-        .app-sidebar details > summary {
-            list-style:none; cursor:pointer; padding:.45rem .85rem;
-            font-size:.82rem; font-weight:600; color:#9aa4b2; display:flex; align-items:center; gap:.4rem;
+        .fn-item:hover { background:#1b212b; border-color:#3a4250; transform:translateY(-1px); color:#fff; }
+        .fn-item.active { background:#23211a; border-color:#ffc107; box-shadow:0 0 0 1px #ffc10733 inset; }
+        .fn-ic {
+            flex:0 0 38px; width:38px; height:38px; border-radius:.55rem;
+            display:flex; align-items:center; justify-content:center;
+            background:#0f141b; border:1px solid #2a313c; font-size:1.1rem; color:#9aa4b2;
         }
-        .app-sidebar details > summary::-webkit-details-marker { display:none; }
-        .app-sidebar details > summary .chev { transition:transform .15s; margin-left:auto; font-size:.7rem; }
-        .app-sidebar details[open] > summary .chev { transform:rotate(90deg); }
-        .app-sidebar details a.side-link { padding-left:1.6rem; font-size:.82rem; }
-        .app-sidebar .badge-count { font-size:.62rem; }
+        .fn-item.active .fn-ic { color:#ffc107; border-color:#ffc10755; background:#1a160c; }
+        .fn-body { min-width:0; }
+        .fn-name { font-weight:600; font-size:.9rem; line-height:1.15; }
+        .fn-desc { font-size:.74rem; color:#8a93a2; margin-top:.15rem; }
+        .fn-item.active .fn-name { color:#ffc107; }
     </style>
 </head>
 <body>
 @{
     var curPage = (ViewContext.RouteData.Values["page"] as string) ?? "";
     var curKey = ViewContext.RouteData.Values["key"] as string;
+    var qModule = Context.Request.Query["module"].ToString();
+
+    // Xác định chức năng lớn đang mở để highlight
+    string activeId;
+    if (!string.IsNullOrEmpty(qModule))
+    {
+        activeId = qModule;
+    }
+    else if (curPage == "/Index")
+    {
+        activeId = "overview";
+    }
+    else if (curPage == "/Calendar") { activeId = "calendar"; }
+    else if (curPage == "/Features") { activeId = "features"; }
+    else if (curPage == "/Backups") { activeId = "backups"; }
+    else if (!string.IsNullOrEmpty(curKey))
+    {
+        var def = EventRegistry.Get(curKey);
+        activeId = def != null ? (ModuleRegistry.ForCategory(def.Category)?.Id ?? "") : "";
+    }
+    else { activeId = ""; }
 }
 <nav class="navbar navbar-expand-lg bg-dark border-bottom border-secondary mb-3">
     <div class="container-fluid">
@@ -87,38 +111,34 @@
             </footer>
         </main>
 
-        <!-- SIDEBAR BÊN PHẢI: GOM MỌI CHỨC NĂNG -->
+        <!-- SIDEBAR BÊN PHẢI: CÁC CHỨC NĂNG LỚN -->
         <aside class="app-sidebar">
-            <div class="side-card mb-3">
-                <div class="side-head">Trang chính</div>
-                <a class="side-link @(curPage == "/Index" ? "active" : "")" asp-page="/Index"><i class="bi bi-grid"></i> Trang chủ</a>
-                <a class="side-link @(curPage == "/Calendar" ? "active" : "")" asp-page="/Calendar"><i class="bi bi-calendar-range"></i> Lịch sự kiện</a>
-                <a class="side-link @(curPage == "/Features" ? "active" : "")" asp-page="/Features"><i class="bi bi-diagram-3"></i> Bản đồ tính năng → XML</a>
-                <a class="side-link @(curPage == "/Backups" ? "active" : "")" asp-page="/Backups"><i class="bi bi-clock-history"></i> Sao lưu</a>
-            </div>
-
-            <div class="side-card">
-                <div class="side-head">Nhóm cấu hình &amp; sự kiện</div>
-                @foreach (var grp in EventRegistry.ByCategory())
+            <div class="nav-head">Chức năng</div>
+            @foreach (var mod in ModuleRegistry.Modules)
+            {
+                var isActive = mod.Id == activeId;
+                var href = mod.IsContent ? "/Index" : (mod.Page ?? "/Index");
+                if (mod.IsContent)
                 {
-                    var hasActive = grp.Any(d => d.Key == curKey);
-                    <details @(hasActive ? "open" : "")>
-                        <summary>
-                            <i class="bi bi-folder2"></i> @grp.Key
-                            <span class="badge bg-secondary badge-count">@grp.Count()</span>
-                            <i class="bi bi-chevron-right chev"></i>
-                        </summary>
-                        @foreach (var def in grp)
-                        {
-                            <a class="side-link @(def.Key == curKey ? "active" : "")"
-                               asp-page="/File" asp-route-key="@def.Key" title="@def.DisplayName">
-                                <i class="bi bi-dot"></i>
-                                <span class="text-truncate">@def.DisplayName</span>
-                            </a>
-                        }
-                    </details>
+                    <a class="fn-item @(isActive ? "active" : "")" asp-page="/Index" asp-route-module="@mod.Id">
+                        <span class="fn-ic"><i class="bi bi-@mod.Icon"></i></span>
+                        <span class="fn-body">
+                            <span class="fn-name">@mod.Name</span>
+                            <span class="fn-desc">@mod.Description</span>
+                        </span>
+                    </a>
                 }
-            </div>
+                else
+                {
+                    <a class="fn-item @(isActive ? "active" : "")" asp-page="@mod.Page">
+                        <span class="fn-ic"><i class="bi bi-@mod.Icon"></i></span>
+                        <span class="fn-body">
+                            <span class="fn-name">@mod.Name</span>
+                            <span class="fn-desc">@mod.Description</span>
+                        </span>
+                    </a>
+                }
+            }
         </aside>
     </div>
 </div>

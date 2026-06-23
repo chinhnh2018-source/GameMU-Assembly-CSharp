@@ -14,6 +14,9 @@ public class IndexModel : PageModel
     public Dictionary<string, int> Counts { get; } = new();
     public Dictionary<string, bool> Exists { get; } = new();
 
+    [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
+    public string? Module { get; set; }
+
     public void OnGet()
     {
         ConfigRoot = _svc.ConfigRoot;
