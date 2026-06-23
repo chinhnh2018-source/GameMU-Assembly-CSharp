@@ -40,22 +40,59 @@ public class XmlEventService
         try { return LoadRecords(def).Count; } catch { return 0; }
     }
 
+    // ---------- Cache LoadRecords (invalidate theo mtime file) ----------
+    // Tránh parse lại file lớn (vd Goods.xml ~15MB) mỗi lần forward-link/back-reference quét.
+    // Khóa = def.Key. Tự làm mới khi mtime của file gốc HOẶC file disabled sidecar thay đổi.
+    private sealed class CacheEntry
+    {
+        public DateTime MainStamp;
+        public DateTime DisabledStamp;
+        public List<EventRecord> Records = new();
+        public Dictionary<string, EventRecord> ById = new();
+    }
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CacheEntry> _cache = new();
+
+    private static DateTime Stamp(string path) => File.Exists(path) ? File.GetLastWriteTimeUtc(path) : DateTime.MinValue;
+
+    /// <summary>Xóa cache 1 file (gọi sau khi ghi). Bỏ qua key => xóa toàn bộ.</summary>
+    public void InvalidateCache(EventFileDef? def = null)
+    {
+        if (def == null) _cache.Clear();
+        else _cache.TryRemove(def.Key, out _);
+    }
+
     public List<EventRecord> LoadRecords(EventFileDef def)
     {
-        var list = new List<EventRecord>();
         var path = FullPath(def);
-        if (!File.Exists(path)) return list;
+        if (!File.Exists(path)) return new List<EventRecord>();
 
+        var disabledPath = DisabledPath(def);
+        var mainStamp = Stamp(path);
+        var disabledStamp = def.Toggle == ToggleStrategy.Park ? Stamp(disabledPath) : DateTime.MinValue;
+
+        if (_cache.TryGetValue(def.Key, out var hit)
+            && hit.MainStamp == mainStamp && hit.DisabledStamp == disabledStamp)
+            return hit.Records;
+
+        var list = new List<EventRecord>();
         var doc = XDocument.Load(path, LoadOptions.PreserveWhitespace);
         foreach (var el in doc.Descendants(def.ItemElement))
             list.Add(BuildRecord(def, el, parked: false));
 
-        if (def.Toggle == ToggleStrategy.Park && File.Exists(DisabledPath(def)))
+        if (def.Toggle == ToggleStrategy.Park && File.Exists(disabledPath))
         {
-            var ddoc = XDocument.Load(DisabledPath(def), LoadOptions.PreserveWhitespace);
+            var ddoc = XDocument.Load(disabledPath, LoadOptions.PreserveWhitespace);
             foreach (var el in ddoc.Descendants(def.ItemElement))
                 list.Add(BuildRecord(def, el, parked: true));
         }
+
+        var byId = new Dictionary<string, EventRecord>();
+        foreach (var r in list) if (!string.IsNullOrEmpty(r.Id)) byId[r.Id] = r;
+
+        _cache[def.Key] = new CacheEntry
+        {
+            MainStamp = mainStamp, DisabledStamp = disabledStamp, Records = list, ById = byId
+        };
         return list;
     }
 
@@ -118,8 +155,11 @@ public class XmlEventService
         return null;
     }
 
-    public EventRecord? GetRecord(EventFileDef def, string id) =>
-        LoadRecords(def).FirstOrDefault(r => r.Id == id);
+    public EventRecord? GetRecord(EventFileDef def, string id)
+    {
+        LoadRecords(def); // đảm bảo cache + chỉ mục ById đã sẵn sàng
+        return _cache.TryGetValue(def.Key, out var e) && e.ById.TryGetValue(id, out var rec) ? rec : null;
+    }
 
     // ---------- Sửa (giữ nguyên định dạng + comment) ----------
 
@@ -280,7 +320,7 @@ public class XmlEventService
         File.Copy(path, Path.Combine(BackupDir, $"{def.Key}__{Path.GetFileName(path)}__{stamp}.bak"), overwrite: true);
     }
 
-    private static void WriteDoc(XDocument doc, string path, bool indent)
+    private void WriteDoc(XDocument doc, string path, bool indent)
     {
         doc.Declaration ??= new XDeclaration("1.0", "utf-8", null);
         var settings = new XmlWriterSettings
@@ -291,8 +331,9 @@ public class XmlEventService
             OmitXmlDeclaration = false
         };
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        using var w = XmlWriter.Create(path, settings);
-        doc.Save(w);
+        using (var w = XmlWriter.Create(path, settings))
+            doc.Save(w);
+        _cache.Clear(); // lam moi cache sau moi lan ghi (ngoai co che invalidate theo mtime)
     }
 
     public List<string> ListBackups()
