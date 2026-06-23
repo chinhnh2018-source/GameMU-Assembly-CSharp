@@ -1,0 +1,155 @@
+@page
+@model GoodsAuditModel
+@{
+    ViewData["Title"] = "Đối soát mã vật phẩm (Goods.xml)";
+    var r = Model.Result;
+    Func<string, bool> match = s => string.IsNullOrWhiteSpace(Model.Q)
+        || s.ToLowerInvariant().Contains(Model.Q!.Trim().ToLowerInvariant());
+    var broken = r.Broken.Where(x => match(x.File) || match(x.Field)).ToList();
+    var suspect = r.Suspect.Where(x => match(x.File) || match(x.Field)).ToList();
+    var clean = r.Clean.Where(x => match(x.File) || match(x.Field)).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h3 class="mb-0"><i class="bi bi-box-seam text-warning"></i> Đối soát mã vật phẩm với Goods.xml</h3>
+    <form method="post" asp-page-handler="Refresh">
+        <button class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Quét lại</button>
+    </form>
+</div>
+
+@if (!Model.RootExists)
+{
+    <div class="alert alert-warning"><b>Không tìm thấy thư mục cấu hình.</b></div>
+}
+else
+{
+    <p class="small text-secondary">
+        Quét toàn bộ <code>GameRes/Config</code>, phát hiện các trường tham chiếu mã vật phẩm và đối soát trực tiếp với
+        <code>Goods.xml</code>. Danh sách trường đã được đối soát định lượng (~100% khớp).
+    </p>
+
+    <div class="row g-2 mb-3">
+        <div class="col-auto"><div class="card bg-dark border-secondary"><div class="card-body py-2 px-3">
+            <div class="text-secondary small">Item trong Goods.xml</div>
+            <div class="fs-4">@r.GoodsTotal.ToString("N0")</div>
+        </div></div></div>
+        <div class="col-auto"><div class="card bg-dark border-secondary"><div class="card-body py-2 px-3">
+            <div class="text-secondary small">File đã quét</div>
+            <div class="fs-4">@r.FilesScanned</div>
+        </div></div></div>
+        <div class="col-auto"><div class="card bg-dark border-secondary"><div class="card-body py-2 px-3">
+            <div class="text-secondary small">Trường tham chiếu</div>
+            <div class="fs-4">@r.FieldsFound</div>
+        </div></div></div>
+        <div class="col-auto"><div class="card bg-dark border-secondary"><div class="card-body py-2 px-3">
+            <div class="text-secondary small">Liên kết hỏng (khớp ≥90%)</div>
+            <div class="fs-4 @(r.Broken.Any() ? "text-danger" : "text-success")">@r.Broken.Count</div>
+        </div></div></div>
+        <div class="col-auto"><div class="card bg-dark border-secondary"><div class="card-body py-2 px-3">
+            <div class="text-secondary small">Khớp thấp (id-space khác?)</div>
+            <div class="fs-4 text-secondary">@r.Suspect.Count</div>
+        </div></div></div>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-sm-6 col-md-4">
+            <input class="form-control form-control-sm" name="q" value="@Model.Q" placeholder="Lọc theo tên file / trường..." />
+        </div>
+        <div class="col-auto"><button class="btn btn-sm btn-outline-light">Lọc</button></div>
+        <div class="col-auto d-flex align-items-center text-secondary small">
+            Quét lúc @r.ScannedAt.ToString("HH:mm:ss dd/MM")
+        </div>
+    </form>
+
+    @if (broken.Any())
+    {
+        <h5 class="mt-3 mb-2 text-danger border-bottom border-secondary pb-1">
+            <i class="bi bi-exclamation-octagon"></i> Liên kết hỏng — trường là goods nhưng vài mã KHÔNG có trong Goods.xml (@broken.Count)
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-sm align-middle">
+                <thead><tr class="text-secondary">
+                    <th>File</th><th>Trường</th><th class="text-end">Tổng</th><th class="text-end">Thiếu</th>
+                    <th>Mã thiếu (mẫu)</th><th></th>
+                </tr></thead>
+                <tbody>
+                @foreach (var row in broken)
+                {
+                    <tr>
+                        <td><code>@row.File</code></td>
+                        <td><span class="badge bg-secondary">@row.Field</span></td>
+                        <td class="text-end">@row.TotalRefs</td>
+                        <td class="text-end text-danger">@row.Missing</td>
+                        <td class="small text-warning">@string.Join(", ", row.MissingSamples)@(row.Missing > row.MissingSamples.Count ? "…" : "")</td>
+                        <td class="text-end">
+                            @if (row.IsManaged && row.ManagedKey != null)
+                            {
+                                <a class="btn btn-sm btn-outline-info" asp-page="/File" asp-route-key="@row.ManagedKey">Mở</a>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> Không phát hiện mã vật phẩm thiếu trong các trường đã quét.</div>
+    }
+
+    @if (suspect.Any())
+    {
+        <h5 class="mt-4 mb-2 text-secondary border-bottom border-secondary pb-1">
+            <i class="bi bi-question-circle"></i> Khớp thấp — tên giống goods nhưng phần lớn giá trị không có trong Goods.xml (@suspect.Count)
+        </h5>
+        <p class="small text-secondary">Các trường này nhiều khả năng tham chiếu <b>id-space khác</b> (số lượng, điểm, mã gói/rương...) chứ không phải Item.ID của Goods.xml — đưa ra để tham khảo, không coi là lỗi.</p>
+        <div class="table-responsive">
+            <table class="table table-dark table-sm align-middle">
+                <thead><tr class="text-secondary">
+                    <th>File</th><th>Trường</th><th class="text-end">Tổng</th><th class="text-end">Khớp</th>
+                    <th>Giá trị không khớp (mẫu)</th>
+                </tr></thead>
+                <tbody>
+                @foreach (var row in suspect)
+                {
+                    <tr>
+                        <td><code>@row.File</code></td>
+                        <td><span class="badge bg-dark border border-secondary text-secondary">@row.Field</span></td>
+                        <td class="text-end">@row.TotalRefs</td>
+                        <td class="text-end">@row.MatchRate.ToString("P0")</td>
+                        <td class="small text-secondary">@string.Join(", ", row.MissingSamples)@(row.Missing > row.MissingSamples.Count ? "…" : "")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h5 class="mt-4 mb-2 text-info border-bottom border-secondary pb-1">
+        <i class="bi bi-check2-circle"></i> Liên kết hợp lệ (@clean.Count trường, 100% khớp)
+    </h5>
+    <div class="table-responsive">
+        <table class="table table-dark table-striped table-sm align-middle">
+            <thead><tr class="text-secondary">
+                <th>File</th><th>Trường</th><th class="text-end">Số tham chiếu</th><th></th>
+            </tr></thead>
+            <tbody>
+            @foreach (var row in clean)
+            {
+                <tr>
+                    <td><code>@row.File</code>@if (row.IsManaged) { <span class="badge bg-info-subtle text-info border border-info ms-1">quản lý</span> }</td>
+                    <td><span class="badge bg-secondary">@row.Field</span></td>
+                    <td class="text-end">@row.TotalRefs</td>
+                    <td class="text-end">
+                        @if (row.IsManaged && row.ManagedKey != null)
+                        {
+                            <a class="btn btn-sm btn-outline-info" asp-page="/File" asp-route-key="@row.ManagedKey">Mở</a>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

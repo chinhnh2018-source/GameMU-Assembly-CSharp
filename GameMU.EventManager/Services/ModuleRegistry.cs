@@ -54,6 +54,9 @@ public static class ModuleRegistry
         new() { Id="links", Name="Liên kết XML", Icon="share", Page="/Links",
                 Description="Quan hệ giữa các file + đối soát GroupID, GoodsID" },
 
+        new() { Id="goods-audit", Name="Đối soát mã vật phẩm", Icon="box-seam", Page="/GoodsAudit",
+                Description="Quét toàn bộ Config, đối soát mọi tham chiếu với Goods.xml" },
+
         new() { Id="backups", Name="Sao lưu & Khôi phục", Icon="clock-history", Page="/Backups",
                 Description="Lịch sử bản sao lưu tự động" },
     };

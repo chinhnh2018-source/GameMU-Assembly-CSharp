@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton<XmlEventService>();
 builder.Services.AddSingleton<LinkResolutionService>();
+builder.Services.AddSingleton<GoodsAuditService>();
 
 var app = builder.Build();
 
