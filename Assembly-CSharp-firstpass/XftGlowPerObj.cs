@@ -1,0 +1,291 @@
+﻿using System;
+using UnityEngine;
+
+[RequireComponent(typeof(Camera)), ExecuteInEditMode]
+public class XftGlowPerObj : MonoBehaviour
+{
+	protected Camera ShaderCamera
+	{
+		get
+		{
+			if (this.m_shaderCamera == null)
+			{
+				this.m_shaderCamera = new GameObject("ShaderCamera", new Type[]
+				{
+					typeof(Camera)
+				});
+				this.m_shaderCamera.GetComponent<Camera>().enabled = false;
+				this.m_shaderCamera.hideFlags = 61;
+			}
+			return this.m_shaderCamera.GetComponent<Camera>();
+		}
+	}
+
+	protected Material compositeMaterial
+	{
+		get
+		{
+			if (this.m_CompositeMaterial == null)
+			{
+				this.m_CompositeMaterial = new Material(this.compositeShader);
+				this.m_CompositeMaterial.hideFlags = 61;
+			}
+			return this.m_CompositeMaterial;
+		}
+	}
+
+	protected Material blurMaterial
+	{
+		get
+		{
+			if (this.m_BlurMaterial == null)
+			{
+				this.m_BlurMaterial = new Material(this.blurShader);
+				this.m_BlurMaterial.hideFlags = 61;
+			}
+			return this.m_BlurMaterial;
+		}
+	}
+
+	protected Material downsampleMaterial
+	{
+		get
+		{
+			if (this.m_DownsampleMaterial == null)
+			{
+				this.m_DownsampleMaterial = new Material(this.downsampleShader);
+				this.m_DownsampleMaterial.hideFlags = 61;
+			}
+			return this.m_DownsampleMaterial;
+		}
+	}
+
+	protected Material blendMaterial
+	{
+		get
+		{
+			if (this.m_blendMaterial == null)
+			{
+				this.m_blendMaterial = new Material(this.blendShader);
+				this.m_blendMaterial.hideFlags = 61;
+			}
+			return this.m_blendMaterial;
+		}
+	}
+
+	private void ReleaseRenderTex()
+	{
+		if (this.TempRenderGlow != null)
+		{
+			RenderTexture.ReleaseTemporary(this.TempRenderGlow);
+			this.TempRenderGlow = null;
+		}
+		if (this.TempRenderTex != null)
+		{
+			RenderTexture.ReleaseTemporary(this.TempRenderTex);
+			this.TempRenderTex = null;
+		}
+	}
+
+	private void PrepareRenderTex()
+	{
+		if (this.TempRenderTex == null)
+		{
+			this.TempRenderTex = RenderTexture.GetTemporary(base.GetComponent<Camera>().pixelWidth, base.GetComponent<Camera>().pixelHeight, 24);
+		}
+		if (this.TempRenderGlow == null)
+		{
+			this.TempRenderGlow = RenderTexture.GetTemporary(base.GetComponent<Camera>().pixelWidth, base.GetComponent<Camera>().pixelHeight, 24);
+		}
+	}
+
+	private void OnPreRender()
+	{
+		if (!base.enabled || !base.gameObject.active)
+		{
+			return;
+		}
+		this.PrepareRenderTex();
+		Camera shaderCamera = this.ShaderCamera;
+		shaderCamera.CopyFrom(base.GetComponent<Camera>());
+		shaderCamera.backgroundColor = Color.black;
+		shaderCamera.targetTexture = this.TempRenderTex;
+		shaderCamera.RenderWithShader(this.ReplacementShader, "XftEffect");
+	}
+
+	private void Awake()
+	{
+		base.enabled = false;
+	}
+
+	public void Init(XftEventComponent client)
+	{
+		this.m_client = client;
+		this.ReplacementShader = client.GlowPerObjReplacementShader;
+		this.blendShader = client.GlowPerObjBlendShader;
+		if (this.m_blendMaterial == null)
+		{
+			this.m_blendMaterial = new Material(this.blendShader);
+			this.m_blendMaterial.hideFlags = 61;
+		}
+		if (this.m_DownsampleMaterial == null)
+		{
+			this.downsampleShader = client.GlowDownSampleShader;
+			this.m_DownsampleMaterial = new Material(this.downsampleShader);
+			this.m_DownsampleMaterial.hideFlags = 61;
+		}
+		if (this.m_CompositeMaterial == null)
+		{
+			this.compositeShader = client.GlowCompositeShader;
+			this.m_CompositeMaterial = new Material(this.compositeShader);
+			this.m_CompositeMaterial.hideFlags = 61;
+		}
+		if (this.m_BlurMaterial == null)
+		{
+			this.blurShader = client.GlowBlurShader;
+			this.m_BlurMaterial = new Material(this.blurShader);
+			this.m_BlurMaterial.hideFlags = 61;
+		}
+		this.SetClientParam();
+	}
+
+	private void SetClientParam()
+	{
+		this.glowIntensity = this.m_client.GlowIntensity;
+		this.blurIterations = this.m_client.GlowBlurIterations;
+		this.blurSpread = this.m_client.GlowBlurSpread;
+		this.glowTint = this.m_client.GlowColorStart;
+	}
+
+	public bool CheckSupport()
+	{
+		bool result = true;
+		if (!SystemInfo.supportsImageEffects)
+		{
+			result = false;
+		}
+		if (this.downsampleShader == null)
+		{
+			Debug.Log("No downsample shader assigned! Disabling glow.");
+			result = false;
+		}
+		else
+		{
+			if (!this.blurMaterial.shader.isSupported)
+			{
+				result = false;
+			}
+			if (!this.compositeMaterial.shader.isSupported)
+			{
+				result = false;
+			}
+			if (!this.downsampleMaterial.shader.isSupported)
+			{
+				result = false;
+			}
+		}
+		return result;
+	}
+
+	public void FourTapCone(RenderTexture source, RenderTexture dest, int iteration)
+	{
+		float num = 0.5f + (float)iteration * this.blurSpread;
+		Graphics.BlitMultiTap(source, dest, this.blurMaterial, new Vector2[]
+		{
+			new Vector2(num, num),
+			new Vector2(-num, num),
+			new Vector2(num, -num),
+			new Vector2(-num, -num)
+		});
+	}
+
+	private void DownSample4x(RenderTexture source, RenderTexture dest)
+	{
+		this.downsampleMaterial.color = new Color(this.glowTint.r, this.glowTint.g, this.glowTint.b, this.glowTint.a / 4f);
+		Graphics.Blit(source, dest, this.downsampleMaterial);
+	}
+
+	private void RenderGlow(RenderTexture source, RenderTexture destination)
+	{
+		this.glowIntensity = Mathf.Clamp(this.glowIntensity, 0f, 10f);
+		this.blurIterations = Mathf.Clamp(this.blurIterations, 0, 30);
+		this.blurSpread = Mathf.Clamp(this.blurSpread, 0.5f, 1f);
+		RenderTexture temporary = RenderTexture.GetTemporary(source.width / 4, source.height / 4, 0);
+		RenderTexture temporary2 = RenderTexture.GetTemporary(source.width / 4, source.height / 4, 0);
+		this.DownSample4x(source, temporary);
+		float num = Mathf.Clamp01((this.glowIntensity - 1f) / 4f);
+		this.blurMaterial.color = new Color(1f, 1f, 1f, 0.25f + num);
+		bool flag = true;
+		for (int i = 0; i < this.blurIterations; i++)
+		{
+			if (flag)
+			{
+				this.FourTapCone(temporary, temporary2, i);
+			}
+			else
+			{
+				this.FourTapCone(temporary2, temporary, i);
+			}
+			flag = !flag;
+		}
+		Graphics.Blit(source, destination);
+		if (flag)
+		{
+			this.BlitGlow(temporary, destination);
+		}
+		else
+		{
+			this.BlitGlow(temporary2, destination);
+		}
+		RenderTexture.ReleaseTemporary(temporary);
+		RenderTexture.ReleaseTemporary(temporary2);
+	}
+
+	private void OnRenderImage(RenderTexture source, RenderTexture destination)
+	{
+		this.RenderGlow(this.TempRenderTex, this.TempRenderGlow);
+		this.blendMaterial.SetTexture("_GlowTex", this.TempRenderGlow);
+		Graphics.Blit(source, destination, this.blendMaterial);
+		this.ReleaseRenderTex();
+	}
+
+	public void BlitGlow(RenderTexture source, RenderTexture dest)
+	{
+		this.compositeMaterial.color = new Color(1f, 1f, 1f, Mathf.Clamp01(this.glowIntensity));
+		Graphics.Blit(source, dest, this.compositeMaterial);
+	}
+
+	public float glowIntensity = 1.5f;
+
+	public int blurIterations = 3;
+
+	public float blurSpread = 0.7f;
+
+	public Color glowTint = new Color(1f, 1f, 1f, 1f);
+
+	protected XftEventComponent m_client;
+
+	protected RenderTexture TempRenderTex;
+
+	protected RenderTexture TempRenderGlow;
+
+	protected GameObject m_shaderCamera;
+
+	public Shader ReplacementShader;
+
+	public Shader compositeShader;
+
+	private Material m_CompositeMaterial;
+
+	public Shader blurShader;
+
+	private Material m_BlurMaterial;
+
+	public Shader downsampleShader;
+
+	private Material m_DownsampleMaterial;
+
+	public Shader blendShader;
+
+	private Material m_blendMaterial;
+}

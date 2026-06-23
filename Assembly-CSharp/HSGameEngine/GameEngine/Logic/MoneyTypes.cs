@@ -1,0 +1,51 @@
+﻿using System;
+
+namespace HSGameEngine.GameEngine.Logic
+{
+	public enum MoneyTypes
+	{
+		None,
+		TongQian,
+		YinLiang = 8,
+		JingYuanZhi = 13,
+		JunGongZhi,
+		LieShaZhi = 20,
+		JiFenZhi = 30,
+		YuanBao = 40,
+		BindYuanBao = 50,
+		ZhanHun = 90,
+		BaoZangJiFen = 110,
+		BaoZangXueZuan,
+		KingOfBattlePoint,
+		JueXing = 132,
+		JueXingZhiChen,
+		EraDonate = 133,
+		KuaFuLueDuoEnterNum,
+		KuaFuLueDuoEnterNumBuyNum,
+		KuaFuLueDuoEnterNumDayID,
+		TotalLoginNum,
+		CompPoint,
+		HunJing,
+		MountPoint,
+		CompBattleJiFen = 143,
+		YuanSuJueXingShi,
+		CompMineJiFen,
+		FuMoMoney,
+		BianShenFreeNum,
+		RebornExpMonster,
+		RebornExpSale,
+		RebornLevelUpPoint = 151,
+		RebornCuiLian,
+		RebornDuanZao,
+		RebornNiePan,
+		RebornFengYin,
+		RebornChongSheng,
+		RebornXuanCai,
+		RebornExpMonsterMax,
+		RebornExpSaleMax,
+		TeamRongYao,
+		RebornEquipHole,
+		TeamPoint,
+		XingYunZhiXing
+	}
+}

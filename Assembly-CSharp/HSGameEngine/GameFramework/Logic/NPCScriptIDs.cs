@@ -1,0 +1,22 @@
+﻿using System;
+
+namespace HSGameEngine.GameFramework.Logic
+{
+	public enum NPCScriptIDs
+	{
+		LeaveFuBen = 10,
+		GotoNextMap,
+		GetAwards,
+		GoToYongZheDaLu = 20,
+		GoToXueSeChengBao = 30,
+		GOTO_BLOODCASTLE = 100,
+		GET_AWARD_BLOODCASTLECOPYSCENE = 200,
+		GOTO_DAIMONSQUARE = 300,
+		GOTO_ARENABATTLEMAP = 400,
+		GOTO_ANGLETEMPLEMAP = 500,
+		GOTO_BOOSZHIJIA = 600,
+		GOTO_HUANGJINSHENGDIAN = 700,
+		GOTO_GUMUMAP = 800,
+		GOTO_SHUIJINGHUANJING = 2000
+	}
+}

@@ -1,0 +1,58 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Sockets;
+
+namespace Server.TCP
+{
+	internal sealed class SocketAsyncEventArgsPool
+	{
+		internal SocketAsyncEventArgsPool(int capacity)
+		{
+			this.pool = new Stack<SocketAsyncEventArgs>(capacity);
+		}
+
+		internal int Count
+		{
+			get
+			{
+				int result = 0;
+				lock (this.pool)
+				{
+					result = this.pool.Count;
+				}
+				return result;
+			}
+		}
+
+		internal SocketAsyncEventArgs Pop()
+		{
+			SocketAsyncEventArgs result;
+			lock (this.pool)
+			{
+				if (this.pool.Count <= 0)
+				{
+					result = null;
+				}
+				else
+				{
+					result = this.pool.Pop();
+				}
+			}
+			return result;
+		}
+
+		internal void Push(SocketAsyncEventArgs item)
+		{
+			if (item == null)
+			{
+				throw new ArgumentNullException("添加到SocketAsyncEventArgsPool 的item不能是空(null)");
+			}
+			lock (this.pool)
+			{
+				this.pool.Push(item);
+			}
+		}
+
+		private Stack<SocketAsyncEventArgs> pool;
+	}
+}

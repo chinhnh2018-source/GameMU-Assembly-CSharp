@@ -1,0 +1,23 @@
+﻿using System;
+
+namespace UniLua
+{
+	public enum LuaType
+	{
+		LUA_TNONE = -1,
+		LUA_TNIL,
+		LUA_TBOOLEAN,
+		LUA_TLIGHTUSERDATA,
+		LUA_TNUMBER,
+		LUA_TSTRING,
+		LUA_TTABLE,
+		LUA_TFUNCTION,
+		LUA_TUSERDATA,
+		LUA_TTHREAD,
+		LUA_TUINT64,
+		LUA_NUMTAGS,
+		LUA_TPROTO,
+		LUA_TUPVAL,
+		LUA_TDEADKEY
+	}
+}

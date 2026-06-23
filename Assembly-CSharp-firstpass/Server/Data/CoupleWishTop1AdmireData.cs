@@ -1,0 +1,24 @@
+﻿using System;
+using ProtoBuf;
+
+namespace Server.Data
+{
+	[ProtoContract]
+	public class CoupleWishTop1AdmireData
+	{
+		[ProtoMember(1, IsRequired = true)]
+		public int DbCoupleId;
+
+		[ProtoMember(2)]
+		public RoleData4Selector ManSelector;
+
+		[ProtoMember(3)]
+		public RoleData4Selector WifeSelector;
+
+		[ProtoMember(4)]
+		public int BeAdmireCount;
+
+		[ProtoMember(5)]
+		public int MyAdmireCount;
+	}
+}

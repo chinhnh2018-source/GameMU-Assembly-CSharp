@@ -1,0 +1,27 @@
+﻿using System;
+using UnityEngine;
+
+public class LookAtCamera : MonoBehaviour
+{
+	private void Start()
+	{
+		if (LayerMask.LayerToName(base.gameObject.layer) == "GUI")
+		{
+			this.cameraToLookAt = GameObject.Find("Camera_HUDText").GetComponent<Camera>();
+		}
+		if (this.cameraToLookAt == null)
+		{
+			this.cameraToLookAt = Camera.main;
+		}
+	}
+
+	private void Update()
+	{
+		if (this.cameraToLookAt != null)
+		{
+			base.transform.rotation = Quaternion.LookRotation(this.cameraToLookAt.transform.position - base.transform.position);
+		}
+	}
+
+	private Camera cameraToLookAt;
+}

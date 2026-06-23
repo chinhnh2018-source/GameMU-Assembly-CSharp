@@ -1,0 +1,32 @@
+﻿using System;
+using Server.Tools;
+
+namespace GameDBServer.Logic.GoldAuction
+{
+	public class LjlLog
+	{
+		public static void WriteLog(LogTypes type, string log, string info = "")
+		{
+			LogManager.WriteLog(type, string.Format("{0}{1}{2}", "[ljl] ", info, log), null, true);
+		}
+
+		public static void WriteLogFormat(LogTypes type, params string[] args)
+		{
+			try
+			{
+				string text = "[ljl] ";
+				for (int i = 0; i < args.Length; i++)
+				{
+					text += args[i];
+				}
+				LogManager.WriteLog(type, text, null, true);
+			}
+			catch (Exception ex)
+			{
+				LogManager.WriteLog(LogTypes.Exception, string.Format("{0}{1}", "[ljl] ", ex.ToString()), null, true);
+			}
+		}
+
+		private const string LogCheckStr = "[ljl] ";
+	}
+}

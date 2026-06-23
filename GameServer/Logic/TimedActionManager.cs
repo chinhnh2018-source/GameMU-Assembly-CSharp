@@ -1,0 +1,215 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using Server.Tools;
+
+namespace GameServer.Logic
+{
+	public class TimedActionManager
+	{
+		public long AddItem(long startTicks, long period, int execCount, int type, Action<long, object> action, object context)
+		{
+			long result;
+			if (execCount > 1000 || execCount < 1)
+			{
+				LogManager.WriteLog(2, "非法参数#AddItem,execCount", null, true);
+				result = -1L;
+			}
+			else
+			{
+				TimedActionItem timedActionItem;
+				lock (this.Mutex)
+				{
+					if (!this.Initialized)
+					{
+						this.Initialized = true;
+						for (int i = 0; i < this.TimedActionArray.Length; i++)
+						{
+							this.TimedActionArray[i] = new TimedActionList();
+						}
+					}
+					if (this.TimedActionQueue.Count > 0)
+					{
+						timedActionItem = this.TimedActionQueue.Dequeue();
+					}
+					else
+					{
+						timedActionItem = new TimedActionItem();
+					}
+					timedActionItem.Id = Interlocked.Increment(ref this.UniqueId);
+					timedActionItem.StartTicks = startTicks;
+					timedActionItem.ExecCount = execCount;
+					timedActionItem.EndTicks = startTicks + (long)execCount * period;
+					timedActionItem.PeriodTicks = period;
+					timedActionItem.NextTicks = startTicks;
+					timedActionItem.ActionProc = action;
+					timedActionItem.ContextObject = context;
+					timedActionItem.Type = type;
+					this.PreList.AddLast(timedActionItem);
+				}
+				result = timedActionItem.Id;
+			}
+			return result;
+		}
+
+		public void RemoveItem(int type)
+		{
+			lock (this.Mutex)
+			{
+				if (this.Initialized)
+				{
+					int num = 0;
+					while ((long)num < 200L)
+					{
+						this.RemoveType(this.TimedActionArray[num], type);
+						num++;
+					}
+					this.RemoveType(this.PreList, type);
+					this.RemoveType(this.PostList, type);
+				}
+			}
+		}
+
+		private void Reset(long nowTicks)
+		{
+			this.StartTicks = nowTicks;
+			this.EndTicks = this.StartTicks + 20000L;
+			this.CurrentIndex = 0;
+			this.ExecTicks = this.StartTicks + 100L;
+		}
+
+		public void Run(long nowTicks)
+		{
+			lock (this.Mutex)
+			{
+				if (this.Initialized)
+				{
+					if (this.ExecTicks < nowTicks)
+					{
+						if (this.CurrentIndex == 0)
+						{
+							if (nowTicks - this.ExecTicks > 5000L)
+							{
+								this.Reset(nowTicks);
+								this.Run(nowTicks);
+							}
+						}
+						while (this.ExecTicks < nowTicks && (long)this.CurrentIndex < 200L)
+						{
+							this.Traverse(this.TimedActionArray[this.CurrentIndex]);
+							this.ExecTicks += 100L;
+							this.CurrentIndex++;
+						}
+						this.Traverse(this.PreList);
+						if ((long)this.CurrentIndex >= 200L)
+						{
+							this.Reset(this.ExecTicks);
+							this.Traverse(this.PostList);
+						}
+					}
+					else if (this.ExecTicks - nowTicks > 5000L)
+					{
+						this.ExecTicks = 0L;
+					}
+				}
+			}
+		}
+
+		private bool ExecItem(LinkedListNode<TimedActionItem> node)
+		{
+			while (node.Value.ExecCount > 0)
+			{
+				if (node.Value.NextTicks >= this.ExecTicks)
+				{
+					break;
+				}
+				node.Value.ExecCount--;
+				long nextTicks = node.Value.NextTicks;
+				node.Value.NextTicks += node.Value.PeriodTicks;
+				node.Value.Exec(nextTicks);
+			}
+			return node.Value.ExecCount > 0;
+		}
+
+		private void Traverse(LinkedList<TimedActionItem> list)
+		{
+			if (list.Count > 0)
+			{
+				LinkedListNode<TimedActionItem> linkedListNode = list.First;
+				LinkedListNode<TimedActionItem> last = list.Last;
+				while (linkedListNode != null)
+				{
+					LinkedListNode<TimedActionItem> next = linkedListNode.Next;
+					if (linkedListNode.List == list)
+					{
+						list.Remove(linkedListNode);
+						if (this.ExecItem(linkedListNode))
+						{
+							if (linkedListNode.Value.NextTicks >= this.EndTicks)
+							{
+								this.PostList.AddLast(linkedListNode);
+							}
+							else if (linkedListNode.Value.NextTicks >= this.ExecTicks)
+							{
+								long num = linkedListNode.Value.NextTicks - this.StartTicks;
+								long num2 = num / 100L;
+								this.TimedActionArray[(int)(checked((IntPtr)num2))].AddLast(linkedListNode);
+							}
+						}
+					}
+					if (last == linkedListNode)
+					{
+						break;
+					}
+					linkedListNode = next;
+				}
+			}
+		}
+
+		private void RemoveType(LinkedList<TimedActionItem> list, int type)
+		{
+			if (list.Count > 0)
+			{
+				LinkedListNode<TimedActionItem> linkedListNode = list.First;
+				LinkedListNode<TimedActionItem> last = list.Last;
+				while (linkedListNode != null)
+				{
+					LinkedListNode<TimedActionItem> next = linkedListNode.Next;
+					if (linkedListNode.Value.Type == type)
+					{
+						list.Remove(linkedListNode);
+					}
+					linkedListNode = next;
+				}
+			}
+		}
+
+		private const long PeriodTicks = 100L;
+
+		private const long MaxIndex = 200L;
+
+		private const long MaxTicks = 20000L;
+
+		private object Mutex = new object();
+
+		private long UniqueId;
+
+		private Queue<TimedActionItem> TimedActionQueue = new Queue<TimedActionItem>();
+
+		public TimedActionList[] TimedActionArray = new TimedActionList[200L];
+
+		public TimedActionList PreList = new TimedActionList();
+
+		public TimedActionList PostList = new TimedActionList();
+
+		public int CurrentIndex;
+
+		public long ExecTicks;
+
+		public long StartTicks;
+
+		public long EndTicks;
+
+		public bool Initialized;
+	}
+}

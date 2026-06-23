@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A4419AC9-4D16-49BB-8633-BA29494B28C9}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ClientTools</RootNamespace>
+    <AssemblyName>ClientTools</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="zlib.net" />
+  </ItemGroup>
+  <ItemGroup>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DebugTextLog.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\NetSocketTypes.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\ProtocolTypes.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\SessionData.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\TCPCmdPacketEventHandler.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\TCPCmdPacketSize.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\TCPInPacket.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\TCPInPacketPool.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\TCPOutPacket.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Protocol\TCPOutPacketPool.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\SocketConnectEventArgs.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Tools\MyDateTime.cs" />
+    <Compile Include="HSGameEngine\GameEngine\Network\Tools\TimeManager.cs" />
+    <Compile Include="Log\IDebugTextLog.cs" />
+    <Compile Include="MUJson.cs" />
+    <Compile Include="ProcessServerCmdHandler.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProtoBuf\BclHelpers.cs" />
+    <Compile Include="ProtoBuf\BufferExtension.cs" />
+    <Compile Include="ProtoBuf\DataFormat.cs" />
+    <Compile Include="ProtoBuf\Extensible.cs" />
+    <Compile Include="ProtoBuf\FriendData.cs" />
+    <Compile Include="ProtoBuf\IExtensible.cs" />
+    <Compile Include="ProtoBuf\IExtension.cs" />
+    <Compile Include="ProtoBuf\ImplicitFields.cs" />
+    <Compile Include="ProtoBuf\MemberSerializationOptions.cs" />
+    <Compile Include="ProtoBuf\Meta\CallbackSet.cs" />
+    <Compile Include="ProtoBuf\Meta\LockContentedEventArgs.cs" />
+    <Compile Include="ProtoBuf\Meta\LockContentedEventHandler.cs" />
+    <Compile Include="ProtoBuf\Meta\MetaType.cs" />
+    <Compile Include="ProtoBuf\Meta\RuntimeTypeModel.cs" />
+    <Compile Include="ProtoBuf\Meta\SubType.cs" />
+    <Compile Include="ProtoBuf\Meta\TypeFormatEventArgs.cs" />
+    <Compile Include="ProtoBuf\Meta\TypeFormatEventHandler.cs" />
+    <Compile Include="ProtoBuf\Meta\TypeModel.cs" />
+    <Compile Include="ProtoBuf\Meta\ValueMember.cs" />
+    <Compile Include="ProtoBuf\Meta\x826e0336b5da6af5.cs" />
+    <Compile Include="ProtoBuf\Meta\x9829c225286ead14.cs" />
+    <Compile Include="ProtoBuf\Meta\xd4dab911626dd004.cs" />
+    <Compile Include="ProtoBuf\PrefixStyle.cs" />
+    <Compile Include="ProtoBuf\Program.cs" />
+    <Compile Include="ProtoBuf\ProtoAfterDeserializationAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoAfterSerializationAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoBeforeDeserializationAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoBeforeSerializationAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoContractAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoEnumAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoException.cs" />
+    <Compile Include="ProtoBuf\ProtoIgnoreAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoIncludeAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoMemberAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoPartialIgnoreAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoPartialMemberAttribute.cs" />
+    <Compile Include="ProtoBuf\ProtoReader.cs" />
+    <Compile Include="ProtoBuf\ProtoWriter.cs" />
+    <Compile Include="ProtoBuf\SerializationContext.cs" />
+    <Compile Include="ProtoBuf\Serializer.cs" />
+    <Compile Include="ProtoBuf\Serializers\x046924351e370a53.cs" />
+    <Compile Include="ProtoBuf\Serializers\x0b9b8c9f0f6eb52b.cs" />
+    <Compile Include="ProtoBuf\Serializers\x1408d8967d2f1af2.cs" />
+    <Compile Include="ProtoBuf\Serializers\x18b706378f1b116b.cs" />
+    <Compile Include="ProtoBuf\Serializers\x1c7a1400f16dde0d.cs" />
+    <Compile Include="ProtoBuf\Serializers\x2263624548b99182.cs" />
+    <Compile Include="ProtoBuf\Serializers\x25a67bca27f4f84f.cs" />
+    <Compile Include="ProtoBuf\Serializers\x268cc84c68b7a350.cs" />
+    <Compile Include="ProtoBuf\Serializers\x268d0b7d0d40d0be.cs" />
+    <Compile Include="ProtoBuf\Serializers\x270e6eb3f68536aa.cs" />
+    <Compile Include="ProtoBuf\Serializers\x2b98a1e927f9de72.cs" />
+    <Compile Include="ProtoBuf\Serializers\x2c658bc58dc2f0e6.cs" />
+    <Compile Include="ProtoBuf\Serializers\x2d308a71a493dcae.cs" />
+    <Compile Include="ProtoBuf\Serializers\x2da9809a4c934e33.cs" />
+    <Compile Include="ProtoBuf\Serializers\x342bdf67bfdfab1b.cs" />
+    <Compile Include="ProtoBuf\Serializers\x3c771d2672e85789.cs" />
+    <Compile Include="ProtoBuf\Serializers\x3ceb7f9b50cd16be.cs" />
+    <Compile Include="ProtoBuf\Serializers\x3e1a662e8bd7a9ca.cs" />
+    <Compile Include="ProtoBuf\Serializers\x41fcadcc0506e331.cs" />
+    <Compile Include="ProtoBuf\Serializers\x506ca272e765d4b6.cs" />
+    <Compile Include="ProtoBuf\Serializers\x51c09eb60e11ce5c.cs" />
+    <Compile Include="ProtoBuf\Serializers\x5c17ccb70f35d083.cs" />
+    <Compile Include="ProtoBuf\Serializers\x6105c3343d9ac486.cs" />
+    <Compile Include="ProtoBuf\Serializers\x66ec8c25e4c7547d.cs" />
+    <Compile Include="ProtoBuf\Serializers\x6f437e5b6820cb83.cs" />
+    <Compile Include="ProtoBuf\Serializers\x7024e111a877c7fe.cs" />
+    <Compile Include="ProtoBuf\Serializers\x70513e892c3247da.cs" />
+    <Compile Include="ProtoBuf\Serializers\x72fd17eaff71827a.cs" />
+    <Compile Include="ProtoBuf\Serializers\x78d7a2d462b6e713.cs" />
+    <Compile Include="ProtoBuf\Serializers\x7b64c37dbdfdeea6.cs" />
+    <Compile Include="ProtoBuf\Serializers\x8cd29e50453cbd62.cs" />
+    <Compile Include="ProtoBuf\Serializers\x8f2d2e2582fd9f3b.cs" />
+    <Compile Include="ProtoBuf\Serializers\x9caf06b8b9c3a409.cs" />
+    <Compile Include="ProtoBuf\Serializers\x9da713b4847e9e6e.cs" />
+    <Compile Include="ProtoBuf\Serializers\xa9b5a992f5a4ca94.cs" />
+    <Compile Include="ProtoBuf\Serializers\xaaa25b0535f71777.cs" />
+    <Compile Include="ProtoBuf\Serializers\xb532c08b9899b08a.cs" />
+    <Compile Include="ProtoBuf\Serializers\xbd5864a3ec0285e9.cs" />
+    <Compile Include="ProtoBuf\Serializers\xc23284a0955df688.cs" />
+    <Compile Include="ProtoBuf\Serializers\xd66bb433130e02ef.cs" />
+    <Compile Include="ProtoBuf\Serializers\xd825bbf60e1b9938.cs" />
+    <Compile Include="ProtoBuf\Serializers\xdae1073def4c17e2.cs" />
+    <Compile Include="ProtoBuf\Serializers\xdeb0ec0887c9560b.cs" />
+    <Compile Include="ProtoBuf\Serializers\xe558091e7a042d4f.cs" />
+    <Compile Include="ProtoBuf\Serializers\xe882c1b4c71baaca.cs" />
+    <Compile Include="ProtoBuf\Serializers\xe9b44656581cbaf8.cs" />
+    <Compile Include="ProtoBuf\Serializers\xf359d5c298ca874d.cs" />
+    <Compile Include="ProtoBuf\Serializers\xf81db36ccd457507.cs" />
+    <Compile Include="ProtoBuf\Serializers\xfe7f376894428b2b.cs" />
+    <Compile Include="ProtoBuf\SubItemToken.cs" />
+    <Compile Include="ProtoBuf\WireType.cs" />
+    <Compile Include="ProtoBuf\x15bd90f59150b4e2.cs" />
+    <Compile Include="ProtoBuf\x479f2661aae93792.cs" />
+    <Compile Include="ProtoBuf\x5397b8badbdbce60.cs" />
+    <Compile Include="ProtoBuf\x87ada6a502ee9bc0.cs" />
+    <Compile Include="ProtoBuf\xd669244d58bc09c0.cs" />
+    <Compile Include="ProtoBuf\xe2887184ca5e62c2.cs" />
+    <Compile Include="Server\Tools\AesHelper.cs" />
+    <Compile Include="Server\Tools\CRC32.cs" />
+    <Compile Include="Server\Tools\DataHelper.cs" />
+    <Compile Include="Server\Tools\LogManager.cs" />
+    <Compile Include="Server\Tools\LogTypes.cs" />
+    <Compile Include="Server\Tools\MD5Core.cs" />
+    <Compile Include="Server\Tools\MD5Helper.cs" />
+    <Compile Include="Server\Tools\MD5Managed.cs" />
+    <Compile Include="Server\Tools\RC4Helper.cs" />
+    <Compile Include="Server\Tools\SHA1Helper.cs" />
+    <Compile Include="Server\Tools\StringEncrypt.cs" />
+    <Compile Include="Server\Tools\StringUtil.cs" />
+    <Compile Include="Server\Tools\x1408d8967d2f1af2.cs" />
+    <Compile Include="SocketConnectEventHandler.cs" />
+    <Compile Include="TCPClient.cs" />
+    <Compile Include="TianMa\Tools\ICMPDestinationUnreachable.cs" />
+    <Compile Include="TianMa\Tools\ICMPEcho.cs" />
+    <Compile Include="TianMa\Tools\ICMPEchoReply.cs" />
+    <Compile Include="TianMa\Tools\ICMPInformationReply.cs" />
+    <Compile Include="TianMa\Tools\ICMPInformationRequest.cs" />
+    <Compile Include="TianMa\Tools\ICMPIPHeaderReply.cs" />
+    <Compile Include="TianMa\Tools\ICMPMessage.cs" />
+    <Compile Include="TianMa\Tools\ICMPPacket.cs" />
+    <Compile Include="TianMa\Tools\ICMPParameterProblem.cs" />
+    <Compile Include="TianMa\Tools\ICMPRedirect.cs" />
+    <Compile Include="TianMa\Tools\ICMPSocket.cs" />
+    <Compile Include="TianMa\Tools\ICMPSourceQuench.cs" />
+    <Compile Include="TianMa\Tools\ICMPTimeExceeded.cs" />
+    <Compile Include="TianMa\Tools\ICMPTimestamp.cs" />
+    <Compile Include="TianMa\Tools\ICMPTimestampReply.cs" />
+    <Compile Include="TianMa\Tools\ICMP_CALLBACK.cs" />
+    <Compile Include="TianMa\Tools\ICMP_OVER_CALLBACK.cs" />
+    <Compile Include="TianMa\Tools\IPPacket.cs" />
+    <Compile Include="TianMa\Tools\TraceUtils.cs" />
+    <Compile Include="TianMa\Tools\x60c233b7055c6c1c.cs" />
+    <Compile Include="TianMa\Tools\xaa6ff34997724cf5.cs" />
+    <Compile Include="Tmsk\Contract\IProtoBuffData.cs" />
+    <Compile Include="Xenocode\Client\Attributes\AssemblyAttributes\ProcessedByXenocode.cs" />
+    <Compile Include="Xenocode\Client\Attributes\AssemblyAttributes\SuppressDisassembly.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

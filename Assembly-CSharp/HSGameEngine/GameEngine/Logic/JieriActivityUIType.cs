@@ -1,0 +1,49 @@
+﻿using System;
+
+namespace HSGameEngine.GameEngine.Logic
+{
+	public enum JieriActivityUIType
+	{
+		None,
+		LoginHaoli,
+		ShouJi,
+		Duihuan,
+		LeijiLogin,
+		MeiriChongzhi,
+		LeijiChongzhi,
+		LeijiXiaofei,
+		ChongzhiKing,
+		XiaofeiKing,
+		Qianggou,
+		BOSS,
+		Fanbei,
+		Zengsong,
+		ZengsongKing,
+		ShouliKing,
+		Chibang,
+		Zhuijia,
+		Qianghua,
+		Chengjiu,
+		Junxian,
+		VIP,
+		Hushenfu,
+		Datianshi,
+		Shouli,
+		Hunyin,
+		LianxuChongzhi,
+		PingtaiChongzhiKing,
+		DianshuDuihuan,
+		Fuli,
+		SuperDirectBuy,
+		VipLibao,
+		DanbiChongzhi,
+		MeiliLeiChong,
+		HuoDongChongZhi,
+		HongBaoQuanMin,
+		HongBaoChongZhi,
+		HongBaoBang,
+		JieRiHuiJiFanLi,
+		JieRiFuWenFanLi,
+		DailyPlatformBuyKing
+	}
+}

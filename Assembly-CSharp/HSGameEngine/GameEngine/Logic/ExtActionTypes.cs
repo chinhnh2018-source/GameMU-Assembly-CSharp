@@ -1,0 +1,14 @@
+﻿using System;
+
+namespace HSGameEngine.GameEngine.Logic
+{
+	public enum ExtActionTypes
+	{
+		EXTACTION_NONE,
+		EXTACTION_NPCDLG,
+		EXTACTION_KILLMONSTER,
+		EXTACTION_GETGOODSPACK,
+		EXTACTION_CAIJI,
+		EXTACTION_ATTACKENEMY
+	}
+}
