@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using GameMU.EventManager.Models;
 
@@ -11,35 +12,38 @@ namespace GameMU.EventManager.Services
     {
         private readonly string _configRoot;
 
+        // Cache danh sách ID vật phẩm trong Goods.xml (tránh đọc lại file ~9700 item mỗi lần lưu)
+        private static HashSet<string>? _goodsCache;
+        private static DateTime _goodsCacheStamp;
+
+        // Các trường chứa MỘT mã vật phẩm
+        private static readonly string[] SingleGoodsKeys = { "GoodsID", "GoodsId", "ItemID", "ItemId" };
+        // Các trường chứa DANH SÁCH quà dạng "id,sl,...|id,sl,..." (mã vật phẩm là số đầu mỗi cụm)
+        private static readonly string[] RewardListKeys = { "GoodsOne", "GoodsTwo", "GoodsThr", "Goods", "Award", "Awards", "EventAward", "AwardGoods" };
+
         public XmlValidationService(string configRoot)
         {
             _configRoot = configRoot;
         }
 
-        /// <summary>
-        /// Thực hiện kiểm tra toàn bộ ràng buộc nghiệp vụ của XML trước khi lưu file
-        /// </summary>
+        /// <summary>Kiểm tra toàn bộ ràng buộc nghiệp vụ trước khi ghi file.</summary>
         public void Validate(EventFileDef def, Dictionary<string, string> values, bool isNew, List<EventRecord> existingRecords)
         {
-            // Rule 1: Kiểm tra trùng lặp khóa chính (ID) đối với bản ghi thêm mới
-            if (isNew && values.TryGetValue(def.IdAttr, out var newId))
+            // 1) Trùng khóa chính (ID) khi thêm mới
+            if (isNew && values.TryGetValue(def.IdAttr, out var newId) && !string.IsNullOrWhiteSpace(newId))
             {
                 if (existingRecords.Any(r => r.Id == newId))
-                {
-                    throw new InvalidOperationException($"[LỖI TRÙNG ID] Mã định danh '{newId}' đã tồn tại trong tệp '{def.RelativePath}'. Vui lòng sử dụng ID khác!");
-                }
+                    throw new InvalidOperationException($"[LỖI TRÙNG ID] Mã '{newId}' đã tồn tại trong '{def.RelativePath}'. Hãy dùng ID khác!");
             }
 
-            // Rule 2: Kiểm tra ràng buộc thời gian hợp lệ (FromDate < ToDate)
+            // 2) Logic khung thời gian (FromDate < ToDate)
             ValidateTimeWindow(values);
 
-            // Rule 3: Kiểm tra giới hạn tỷ lệ phần trăm (0 - 100) đối với thông số SystemParams
+            // 3) Giới hạn % cho tham số hệ thống
             if (def.Key == "system-params")
-            {
                 ValidateSystemParams(values);
-            }
 
-            // Rule 4: Kiểm tra ràng buộc liên file (Mã vật phẩm GoodsID phải tồn tại trong Goods.xml)
+            // 4) Ràng buộc liên file: mã vật phẩm phải tồn tại trong Goods.xml
             ValidateGoodsReference(values);
         }
 
@@ -47,25 +51,18 @@ namespace GameMU.EventManager.Services
         {
             string[] startKeys = { "FromDate", "BeginTime", "StartTime" };
             string[] endKeys = { "ToDate", "FinishTime", "EndTime" };
+            var startAttr = startKeys.FirstOrDefault(values.ContainsKey);
+            var endAttr = endKeys.FirstOrDefault(values.ContainsKey);
+            if (startAttr == null || endAttr == null) return;
 
-            string startAttr = startKeys.FirstOrDefault(values.ContainsKey);
-            string endAttr = endKeys.FirstOrDefault(values.ContainsKey);
+            var s = values[startAttr].Trim();
+            var e = values[endAttr].Trim();
+            if (s is "-1" or "" || e is "-1" or "") return;
 
-            if (startAttr != null && endAttr != null)
+            if (DateTime.TryParse(s, out var start) && DateTime.TryParse(e, out var end) && start.Year > 2001 && end.Year > 2001)
             {
-                var startVal = values[startAttr].Trim();
-                var endVal = values[endAttr].Trim();
-
-                if (startVal != "-1" && endVal != "-1" && startVal != "2000-01-01 00:00:00" && endVal != "2000-01-01 00:00:00")
-                {
-                    if (DateTime.TryParse(startVal, out var start) && DateTime.TryParse(endVal, out var end))
-                    {
-                        if (start >= end)
-                        {
-                            throw new InvalidOperationException($"[LỖI LOGIC THỜI GIAN] Thời gian bắt đầu '{startVal}' không thể lớn hơn hoặc bằng thời gian kết thúc '{endVal}'!");
-                        }
-                    }
-                }
+                if (start >= end)
+                    throw new InvalidOperationException($"[LỖI THỜI GIAN] Thời gian bắt đầu '{s}' không thể >= thời gian kết thúc '{e}'!");
             }
         }
 
@@ -73,59 +70,70 @@ namespace GameMU.EventManager.Services
         {
             if (values.TryGetValue("Name", out var name) && values.TryGetValue("Value", out var valStr))
             {
-                if (name.Contains("Percent") || name.Contains("Rate"))
+                if ((name.Contains("Percent") || name.Contains("Rate")) && double.TryParse(valStr, out var p))
                 {
-                    if (double.TryParse(valStr, out var percent))
-                    {
-                        if (percent < 0 || percent > 100)
-                        {
-                            throw new InvalidOperationException($"[LỖI THÔNG SỐ CÂN BẰNG] Tham số tỷ lệ '{name}' bắt buộc phải nằm trong khoảng từ [0] đến [100]%. Giá trị '{valStr}' bạn nhập không hợp lệ!");
-                        }
-                    }
+                    if (p < 0 || p > 100)
+                        throw new InvalidOperationException($"[LỖI THAM SỐ] Tỷ lệ '{name}' phải trong khoảng [0..100]%. Giá trị '{valStr}' không hợp lệ!");
                 }
             }
         }
 
         private void ValidateGoodsReference(Dictionary<string, string> values)
         {
-            string[] goodsKeys = { "GoodsID", "GoodsId", "ItemID", "ItemId", "AwardID", "AwardId" };
-            string foundKey = goodsKeys.FirstOrDefault(values.ContainsKey);
+            var candidates = new List<string>();
 
-            if (foundKey != null && !string.IsNullOrWhiteSpace(values[foundKey]))
+            foreach (var key in SingleGoodsKeys)
+                if (values.TryGetValue(key, out var v) && IsRealId(v))
+                    candidates.Add(v.Trim());
+
+            foreach (var key in RewardListKeys)
+                if (values.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v))
+                    candidates.AddRange(ParseRewardGoodsIds(v));
+
+            if (candidates.Count == 0) return;
+
+            var valid = LoadGoodsIds();
+            if (valid.Count == 0) return; // không đọc được Goods.xml → bỏ qua để không kẹt thao tác
+
+            foreach (var id in candidates.Distinct())
+                if (!valid.Contains(id))
+                    throw new InvalidOperationException($"[LỖI LIÊN KẾT] Mã vật phẩm '{id}' không tồn tại trong 'Goods.xml'. Hãy kiểm tra lại phần thưởng!");
+        }
+
+        /// <summary>Tách mã vật phẩm từ chuỗi quà "id,sl,...|id,sl,..." (lấy số đầu mỗi cụm ngăn bởi '|').</summary>
+        private static IEnumerable<string> ParseRewardGoodsIds(string raw)
+        {
+            foreach (var chunk in raw.Split('|', StringSplitOptions.RemoveEmptyEntries))
             {
-                var goodsIdRaw = values[foundKey].Trim();
-                if (goodsIdRaw == "-1") return;
-
-                // Tách chuỗi nếu cấu hình chứa danh sách quà (VD: "1001|1|1002|5")
-                var idsToCheck = goodsIdRaw.Contains('|')
-                    ? goodsIdRaw.Split('|').Where((val, index) => index % 2 == 0).ToList()
-                    : new List<string> { goodsIdRaw };
-
-                var goodsXmlPath = Path.Combine(_configRoot, "Goods.xml");
-                if (File.Exists(goodsXmlPath))
-                {
-                    try
-                    {
-                        var doc = XDocument.Load(goodsXmlPath);
-                        var validIds = doc.Descendants("Goods")
-                                          .Select(g => g.Attribute("ID")?.Value)
-                                          .Where(id => id != null)
-                                          .ToHashSet();
-
-                        foreach (var id in idsToCheck)
-                        {
-                            if (!validIds.Contains(id))
-                            {
-                                throw new InvalidOperationException($"[LỖI LIÊN KẾT XML] Vật phẩm có ID '{id}' được cấu hình trong trường '{foundKey}' không tồn tại trong danh mục vật phẩm gốc 'Goods.xml'!");
-                            }
-                        }
-                    }
-                    catch (Exception ex) when (!(ex is InvalidOperationException))
-                    {
-                        // Bỏ qua lỗi cú pháp của Goods.xml nếu tệp gốc bị hỏng để tránh kẹt ứng dụng
-                    }
-                }
+                var first = chunk.Split(',', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim();
+                if (IsRealId(first)) yield return first!;
             }
+        }
+
+        private static bool IsRealId(string? s) =>
+            !string.IsNullOrWhiteSpace(s) && Regex.IsMatch(s.Trim(), @"^\d+$") && s.Trim() != "0";
+
+        private HashSet<string> LoadGoodsIds()
+        {
+            var path = Path.Combine(_configRoot, "Goods.xml");
+            if (!File.Exists(path)) return new HashSet<string>();
+
+            var stamp = File.GetLastWriteTimeUtc(path);
+            if (_goodsCache != null && stamp == _goodsCacheStamp) return _goodsCache;
+
+            var set = new HashSet<string>();
+            try
+            {
+                // Quét nhanh thuộc tính ID của các thẻ <Item> (Goods.xml có ~9700 item)
+                var text = File.ReadAllText(path);
+                foreach (Match m in Regex.Matches(text, "<Item\\s+ID=\"(\\d+)\""))
+                    set.Add(m.Groups[1].Value);
+            }
+            catch { /* giữ set rỗng → bỏ qua kiểm tra */ }
+
+            _goodsCache = set;
+            _goodsCacheStamp = stamp;
+            return set;
         }
     }
 }

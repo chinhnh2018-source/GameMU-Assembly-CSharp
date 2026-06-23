@@ -47,6 +47,9 @@ public static class ModuleRegistry
         new() { Id="features", Name="Bản đồ tính năng → XML", Icon="diagram-3", Page="/Features",
                 Description="186 lớp GameServer ↔ file XML" },
 
+        new() { Id="links", Name="Liên kết XML", Icon="share", Page="/Links",
+                Description="Quan hệ giữa các file + đối soát GroupID, GoodsID" },
+
         new() { Id="backups", Name="Sao lưu & Khôi phục", Icon="clock-history", Page="/Backups",
                 Description="Lịch sử bản sao lưu tự động" },
     };
