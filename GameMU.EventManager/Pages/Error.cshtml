@@ -1,0 +1,9 @@
+@page
+@model ErrorModel
+@{ ViewData["Title"] = "Loi"; }
+<h4 class="text-danger">Da xay ra loi</h4>
+@if (Model.ShowRequestId)
+{
+    <p><strong>Request ID:</strong> <code>@Model.RequestId</code></p>
+}
+<a class="btn btn-outline-light" asp-page="/Index">Ve trang chu</a>

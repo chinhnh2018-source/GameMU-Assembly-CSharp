@@ -1,0 +1,54 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Trang chu";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0"><i class="bi bi-calendar-event text-warning"></i> Quan ly su kien</h3>
+    <span class="text-secondary small">Nguon: <code>@Model.ConfigRoot</code></span>
+</div>
+
+@if (!Model.RootExists)
+{
+    <div class="alert alert-warning">
+        <b>Khong tim thay thu muc cau hinh.</b> Hay sua <code>EventManager:GameResConfigPath</code> trong <code>appsettings.json</code>
+        tro toi <code>GameRes/GameRes/Config</code> cua GameServer. Hien tai: <code>@Model.ConfigRoot</code>
+    </div>
+}
+else
+{
+    @foreach (var grp in EventRegistry.ByCategory())
+    {
+        <h5 class="mt-4 mb-2 text-info border-bottom border-secondary pb-1">@grp.Key</h5>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
+            @foreach (var def in grp)
+            {
+                var ok = Model.Exists.GetValueOrDefault(def.Key);
+                <div class="col">
+                    <div class="card cat-card h-100 bg-dark border-secondary">
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title mb-1">@def.DisplayName</h6>
+                            <div class="small text-secondary mb-2 flex-grow-1">@def.Description</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    @if (ok)
+                                    {
+                                        <span class="badge bg-secondary">@Model.Counts.GetValueOrDefault(def.Key) muc</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">thieu file</span>
+                                    }
+                                    <span class="badge bg-info-subtle text-info border border-info">@def.Toggle</span>
+                                </div>
+                                <a class="btn btn-sm btn-warning @(ok ? "" : "disabled")"
+                                   asp-page="/File" asp-route-key="@def.Key">Mo <i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
