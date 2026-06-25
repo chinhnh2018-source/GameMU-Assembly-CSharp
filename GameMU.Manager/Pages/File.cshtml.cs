@@ -20,8 +20,15 @@ public class FileModel : PageModel
     [BindProperty(SupportsGet = true)] public string Key { get; set; } = "";
     [BindProperty(SupportsGet = true)] public string? Q { get; set; }
     [BindProperty(SupportsGet = true)] public string? State { get; set; } // all|on|off
+
+    // Pagination
+    [BindProperty(SupportsGet = true)] public int Page { get; set; } = 1;
+    public int PageSize { get; private set; } = 100;
+    public int TotalCount { get; private set; }
+    public int TotalPages { get; private set; }
+
     // FK lookups for each record
-    public Dictionary<string, List<ResolvedLink>> ForwardLinks { get; } = new();
+    public Dictionary<string, List<ForwardLink>> ForwardLinks { get; } = new();
     public Dictionary<string, List<BackReference>> BackRefs { get; } = new();
     // Known FK fields map: fieldName -> ForeignKeyRef
     public Dictionary<string, ForeignKeyRef> FkFields { get; } = new();
@@ -33,6 +40,9 @@ public class FileModel : PageModel
         var def = EventRegistry.Get(Key);
         if (def == null) return NotFound();
         Def = def;
+
+        // Adjust page size for large files
+        PageSize = def.Key == "giftcode" ? 50 : 100;
 
         // Build FK field map
         foreach (var fk in def.ForeignKeys)
@@ -49,14 +59,20 @@ public class FileModel : PageModel
         {
             var s = Q.Trim().ToLowerInvariant();
             q = q.Where(r => r.Id.ToLowerInvariant().Contains(s)
-                          || r.Name.ToLowerInvariant().Contains(s)
-                          || r.Attributes.Values.Any(v => v.ToLowerInvariant().Contains(s)));
+                || r.Name.ToLowerInvariant().Contains(s)
+                || r.Attributes.Values.Any(v => v.ToLowerInvariant().Contains(s)));
         }
         if (State == "on") q = q.Where(r => r.Enabled);
         else if (State == "off") q = q.Where(r => !r.Enabled);
-        Records = q.ToList();
 
-        // Resolve FK links for shown records
+        var filtered = q.ToList();
+        TotalCount = filtered.Count;
+        TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
+        Page = Math.Max(1, Math.Min(Page, TotalPages == 0 ? 1 : TotalPages));
+
+        Records = filtered.Skip((Page - 1) * PageSize).Take(PageSize).ToList();
+
+        // Resolve FK links for shown records only (not all records)
         foreach (var rec in Records)
         {
             var fwd = _links.GetForwardLinks(def, rec);
@@ -75,7 +91,7 @@ public class FileModel : PageModel
         if (def == null) return NotFound();
         try { _svc.Toggle(def, id, enable); TempData["msg"] = $"Da {(enable ? "BAT" : "TAT")} muc {id}."; }
         catch (Exception ex) { TempData["err"] = ex.Message; }
-        return RedirectToPage(new { key, Q, State });
+        return RedirectToPage(new { key, Q, State, Page });
     }
 
     public IActionResult OnPostDelete(string key, string id)
@@ -84,6 +100,6 @@ public class FileModel : PageModel
         if (def == null) return NotFound();
         try { _svc.DeleteRecord(def, id); TempData["msg"] = $"Da xoa muc {id}."; }
         catch (Exception ex) { TempData["err"] = ex.Message; }
-        return RedirectToPage(new { key, Q, State });
+        return RedirectToPage(new { key, Q, State, Page });
     }
 }
