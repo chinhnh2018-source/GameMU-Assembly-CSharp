@@ -1,9 +1,51 @@
 @page
 @model BackupsModel
-@{ ViewData["Title"] = "Sao lưu"; }
+@{ ViewData["Title"] = "Sao lưu & Import/Export"; }
 
-<h4><i class="bi bi-clock-history"></i> Sao lưu gần đây</h4>
-<p class="small text-secondary">Lưu tại: <code>@Model.Root/_EventManager/backups/</code> (hiện 50 bản mới nhất). Muốn khôi phục, chép file <code>.bak</code> đè lên file gốc.</p>
+<h4><i class="bi bi-clock-history"></i> Sao lưu & Import/Export</h4>
+
+@* ── Import/Export ZIP ─────────────────────────────────────────── *@
+<div class="row g-3 mb-4">
+    <div class="col-sm-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-download text-success"></i> Xuất ZIP</h6>
+                <p class="small text-secondary">Đóng gói toàn bộ XML config files thành 1 file ZIP để backup hoặc chuyển sang server khác.</p>
+                <a href="/api/export" class="btn btn-sm btn-success" download>
+                    <i class="bi bi-file-zip"></i> Tải xuống toàn bộ Config.zip
+                </a>
+                <div class="mt-2">
+                    <small class="text-muted">Hoặc xuất có chọn lọc qua API:</small>
+                    <code class="d-block small mt-1">GET /api/export?keys=jieri-type,hefu-type,event-calendar</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-upload text-warning"></i> Nhập ZIP</h6>
+                <p class="small text-secondary">Nạp lại cấu hình từ file ZIP. Các file hiện tại sẽ được tự động backup trước khi ghi đè.</p>
+                <form id="importForm" enctype="multipart/form-data">
+                    <div class="input-group input-group-sm">
+                        <input type="file" id="zipFile" accept=".zip" class="form-control form-control-sm bg-dark text-light border-secondary" />
+                        <button type="button" class="btn btn-warning" onclick="doImport()">
+                            <i class="bi bi-box-arrow-in-down"></i> Import
+                        </button>
+                    </div>
+                </form>
+                <div id="importResult" class="small mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Danh sách backup gần đây ──────────────────────────────────── *@
+<h6 class="mt-4"><i class="bi bi-list-ul"></i> Backup gần đây (tối đa 50)</h6>
+<p class="small text-secondary">
+    Lưu tại: <code>@Model.Root/_EventManager/backups/</code>
+    (hiện <strong>@Model.Backups.Count</strong> bản). Muốn khôi phục, chép file <code>.bak</code> đè lên file gốc.
+</p>
 
 <div class="table-responsive">
     <table class="table table-dark table-sm table-striped">
@@ -20,3 +62,27 @@
         </tbody>
     </table>
 </div>
+
+@section Scripts {
+<script>
+async function doImport() {
+    const fileInput = document.getElementById('zipFile');
+    const resultDiv = document.getElementById('importResult');
+    if (!fileInput.files[0]) { resultDiv.innerHTML = '<span class="text-danger">Chọn file .zip trước.</span>'; return; }
+
+    const form = new FormData();
+    form.append('file', fileInput.files[0]);
+    resultDiv.innerHTML = '<span class="text-muted">Đang import...</span>';
+
+    try {
+        const resp = await fetch('/api/import', { method: 'POST', body: form });
+        const json = await resp.json();
+        const cls = json.success ? 'text-success' : 'text-warning';
+        const errHtml = json.errors?.length ? `<ul>${json.errors.map(e => `<li>${e}</li>`).join('')}</ul>` : '';
+        resultDiv.innerHTML = `<span class="${cls}">${json.message}</span>${errHtml}`;
+    } catch(e) {
+        resultDiv.innerHTML = `<span class="text-danger">Lỗi: ${e.message}</span>`;
+    }
+}
+</script>
+}
