@@ -1,83 +1,50 @@
 /**
- * GoodsDataEditor.js
- * Component parse/render/serialize GoodsData format:
- * "GoodsID,GCount,Binding,Forge_level,AppendPropLev,Lucky,ExcellenceInfo|..."
+ * GoodsDataEditor.js  v2
+ * Visual editor for GoodsData "id,count,bind,forge,append,lucky,excel|..." format.
  *
- * Cách dùng:
- * 1. Thêm <script src="/js/GoodsDataEditor.js"></script> vào Edit.cshtml
- * 2. Gọi GoodsDataEditor.init() sau khi DOM loaded
+ * Tự động kích hoạt trong trang Edit khi có textarea có name bắt đầu bằng f_Goods*.
+ * Compatible với Razor Pages form (prefix f_).
  */
-
 const GoodsDataEditor = (() => {
     const FIELDS = ['GoodsID', 'GCount', 'Binding', 'Forge_level', 'AppendPropLev', 'Lucky', 'ExcellenceInfo'];
-    const GOODS_ATTRS = ['GoodsOne', 'GoodsTwo', 'GoodsThr', 'GoodsFour', 'GoodsList',
-                         'GoodsID', 'GoodsId', 'Award', 'AwardGoods'];
+    const FIELD_LABELS = ['Mã vật phẩm', 'Số lượng', 'Ràng buộc', 'Cấp rèn', 'Cấp phụ', 'Lucky', 'Excellence'];
+    const GOODS_NAME_PATTERNS = [
+        /^f_Goods(One|Two|Thr|Four|List|ID|Id|IDs)$/i,
+        /^f_Award(Goods)?$/i,
+        /^f_GoodsID\d*$/i,
+    ];
 
-    /** Parse "id,count,bind,forge,append,lucky,excel|..." → array of objects */
+    function isGoodsField(name) {
+        return GOODS_NAME_PATTERNS.some(p => p.test(name));
+    }
+
+    function isGoodsDataFormat(raw) {
+        if (!raw || !raw.trim()) return false;
+        const chunk = raw.split('|')[0].trim();
+        const parts = chunk.split(',');
+        // GoodsData: ít nhất 3 fields, field đầu là số nguyên dương
+        return parts.length >= 3 && /^\d+$/.test(parts[0].trim()) && parts[0].trim() !== '0';
+    }
+
     function parse(raw) {
-        if (!raw || raw.trim() === '') return [];
-        return raw.split('|')
-            .filter(s => s.trim())
-            .map(chunk => {
-                const parts = chunk.split(',').map(s => s.trim());
-                const obj = {};
-                FIELDS.forEach((f, i) => obj[f] = parts[i] || '0');
-                return obj;
-            });
+        if (!raw || !raw.trim()) return [];
+        return raw.split('|').filter(s => s.trim()).map(chunk => {
+            const parts = chunk.split(',').map(s => s.trim());
+            const obj = {};
+            FIELDS.forEach((f, i) => obj[f] = parts[i] ?? '0');
+            return obj;
+        });
     }
 
-    /** Array of objects → "id,count,bind,...|..." */
     function serialize(items) {
-        return items
-            .filter(item => item.GoodsID && item.GoodsID !== '0')
-            .map(item => FIELDS.map(f => item[f] || '0').join(','))
-            .join('|');
+        return items.filter(item => item.GoodsID && item.GoodsID !== '0').map(item =>
+            FIELDS.map(f => item[f] || '0').join(',')
+        ).join('|');
     }
 
-    /** Tạo một row trong bảng */
-    function createRow(item, rowIndex) {
-        const tr = document.createElement('tr');
-        tr.dataset.row = rowIndex;
-
-        FIELDS.forEach((f, i) => {
-            const td = document.createElement('td');
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.value = item[f] || '0';
-            input.dataset.field = f;
-            input.dataset.row = rowIndex;
-            input.className = i === 0
-                ? 'goods-id-input form-control form-control-sm'
-                : 'form-control form-control-sm';
-            input.style.width = i === 0 ? '90px' : '60px';
-            input.min = '0';
-            if (f === 'Binding') { input.max = '1'; }
-            td.appendChild(input);
-            tr.appendChild(td);
-        });
-
-        // Delete button
-        const tdDel = document.createElement('td');
-        const btnDel = document.createElement('button');
-        btnDel.type = 'button';
-        btnDel.className = 'btn btn-sm btn-outline-danger';
-        btnDel.textContent = '✕';
-        btnDel.onclick = () => { tr.remove(); syncToHidden(tr.closest('table')); };
-        tdDel.appendChild(btnDel);
-        tr.appendChild(tdDel);
-
-        // Sync hidden input on change
-        tr.querySelectorAll('input[type=number]').forEach(inp => {
-            inp.addEventListener('input', () => syncToHidden(tr.closest('table')));
-        });
-
-        return tr;
-    }
-
-    /** Đọc toàn bộ rows trong tbody → serialize → cập nhật hidden input */
     function syncToHidden(table) {
         const items = [];
-        table.querySelectorAll('tbody tr').forEach(tr => {
+        table.querySelectorAll('tbody tr[data-row]').forEach(tr => {
             const item = {};
             tr.querySelectorAll('input[data-field]').forEach(inp => {
                 item[inp.dataset.field] = inp.value;
@@ -88,115 +55,134 @@ const GoodsDataEditor = (() => {
         if (hidden) hidden.value = serialize(items);
     }
 
-    /** Khởi tạo editor cho 1 textarea/input */
-    function initField(textarea) {
-        const raw = textarea.value;
-        const fieldName = textarea.name || textarea.id;
+    function createRow(item, rowIndex) {
+        const tr = document.createElement('tr');
+        tr.dataset.row = rowIndex;
+        FIELDS.forEach((f, i) => {
+            const td = document.createElement('td');
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.min = '0';
+            inp.value = item[f] || '0';
+            inp.dataset.field = f;
+            inp.className = 'form-control form-control-sm';
+            inp.style.width = i === 0 ? '100px' : i === 1 ? '70px' : '55px';
+            inp.style.minWidth = inp.style.width;
+            if (f === 'Binding') { inp.max = '1'; inp.title = '0=Không ràng, 1=Ràng'; }
+            inp.addEventListener('input', () => syncToHidden(tr.closest('table')));
+            td.appendChild(inp);
+            tr.appendChild(td);
+        });
+        const tdAct = document.createElement('td');
+        const btnDel = document.createElement('button');
+        btnDel.type = 'button';
+        btnDel.className = 'btn btn-sm btn-outline-danger py-0';
+        btnDel.textContent = '✕';
+        btnDel.title = 'Xóa item này';
+        btnDel.onclick = () => { tr.remove(); syncToHidden(tr.closest('table')); };
+        tdAct.appendChild(btnDel);
+        tr.appendChild(tdAct);
+        return tr;
+    }
 
-        // Tạo container
+    function initField(textarea) {
+        if (textarea.dataset.goodsInit) return;
+        textarea.dataset.goodsInit = '1';
+        const raw = textarea.value;
+        const name = textarea.name;          // e.g. "f_GoodsOne"
+        const displayName = name.replace(/^f_/, '');
+
         const wrapper = document.createElement('div');
-        wrapper.className = 'goods-editor-wrapper border rounded p-2 bg-light';
+        wrapper.className = 'goods-editor mt-1';
 
         // Header
-        const header = document.createElement('div');
-        header.className = 'd-flex align-items-center gap-2 mb-2';
-        header.innerHTML = `
-            <span class="badge bg-secondary">${fieldName}</span>
-            <small class="text-muted">GoodsData editor (7 fields)</small>
-            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="btn-add-${fieldName}">
-                + Thêm item
-            </button>
+        const hdr = document.createElement('div');
+        hdr.className = 'd-flex flex-wrap align-items-center gap-2 mb-1';
+        hdr.innerHTML = `
+            <span class="badge text-bg-secondary">${displayName}</span>
+            <small class="text-muted">GoodsData — 7 trường mỗi item, ngăn cách bằng |</small>
+            <button type="button" class="btn btn-sm btn-outline-primary btn-add-item ms-auto">＋ Thêm</button>
         `;
-        wrapper.appendChild(header);
+        wrapper.appendChild(hdr);
 
         // Table
-        const tableWrapper = document.createElement('div');
-        tableWrapper.style.overflowX = 'auto';
-
+        const wrap = document.createElement('div');
+        wrap.style.overflowX = 'auto';
         const table = document.createElement('table');
-        table.className = 'table table-sm table-bordered mb-1';
-        table.dataset.hiddenId = `hidden-${fieldName}`;
+        table.className = 'table table-sm table-bordered mb-1 goods-table';
+        table.dataset.hiddenId = `hid-${name}`;
 
-        // Thead
+        // thead
         const thead = document.createElement('thead');
-        thead.innerHTML = `<tr>
-            ${FIELDS.map(f => `<th class="text-nowrap" style="font-size:0.75rem">${f}</th>`).join('')}
-            <th></th>
-        </tr>`;
+        thead.innerHTML = `<tr class="table-light">${
+            FIELD_LABELS.map((lbl, i) =>
+                `<th style="font-size:.7rem;white-space:nowrap" title="${FIELDS[i]}">${lbl}</th>`
+            ).join('')
+        }<th></th></tr>`;
         table.appendChild(thead);
 
-        // Tbody
+        // tbody
         const tbody = document.createElement('tbody');
-        const items = parse(raw);
-        items.forEach((item, i) => tbody.appendChild(createRow(item, i)));
+        parse(raw).forEach((item, i) => tbody.appendChild(createRow(item, i)));
         table.appendChild(tbody);
-        tableWrapper.appendChild(table);
-        wrapper.appendChild(tableWrapper);
+        wrap.appendChild(table);
+        wrapper.appendChild(wrap);
 
-        // Hidden input giữ giá trị raw
+        // Empty-state
+        const empty = document.createElement('p');
+        empty.className = 'text-muted small mb-0 goods-empty';
+        empty.style.display = tbody.children.length ? 'none' : '';
+        empty.textContent = '(chưa có item — nhấn ＋ Thêm để bắt đầu)';
+        wrapper.appendChild(empty);
+
+        function refreshEmpty() {
+            empty.style.display = tbody.children.length ? 'none' : '';
+        }
+
+        // Hidden input (maintains the raw value for form submit)
         const hidden = document.createElement('input');
         hidden.type = 'hidden';
-        hidden.id = `hidden-${fieldName}`;
-        hidden.name = textarea.name;
+        hidden.id = `hid-${name}`;
+        hidden.name = name;          // same name → replaces original textarea in submit
         hidden.value = raw;
         wrapper.appendChild(hidden);
 
-        // Ẩn textarea gốc
-        textarea.type = 'hidden';
-        textarea.name = ''; // bỏ name để không submit
+        // Disable original textarea so it doesn't submit duplicate
+        textarea.removeAttribute('name');
         textarea.style.display = 'none';
-        textarea.parentNode.insertBefore(wrapper, textarea);
+        textarea.parentNode.insertBefore(wrapper, textarea.nextSibling);
 
-        // Add row button
-        document.getElementById(`btn-add-${fieldName}`).addEventListener('click', () => {
-            const newItem = { GoodsID: '0', GCount: '1', Binding: '0',
-                              Forge_level: '0', AppendPropLev: '0', Lucky: '0', ExcellenceInfo: '0' };
-            const row = createRow(newItem, tbody.children.length);
-            tbody.appendChild(row);
+        // Add button
+        hdr.querySelector('.btn-add-item').addEventListener('click', () => {
+            const newItem = Object.fromEntries(FIELDS.map(f => [f, '0']));
+            newItem.GCount = '1';
+            tbody.appendChild(createRow(newItem, tbody.children.length));
+            refreshEmpty();
             syncToHidden(table);
         });
 
-        return wrapper;
+        // Initial sync observation
+        new MutationObserver(() => refreshEmpty())
+            .observe(tbody, { childList: true });
     }
 
-    /** Khởi tạo tất cả Goods fields trong form */
     function init() {
-        // Tìm các textarea/input có name trong GOODS_ATTRS
-        GOODS_ATTRS.forEach(attrName => {
-            document.querySelectorAll(`textarea[name="${attrName}"], input[name="${attrName}"]`)
-                .forEach(el => {
-                    if (el.dataset.goodsEditorInit) return;
-                    el.dataset.goodsEditorInit = '1';
-                    initField(el);
-                });
-        });
-
-        // Auto-detect: textarea/input có value chứa pipe-separated "number,number,...|..."
-        document.querySelectorAll('textarea, input[type=text]').forEach(el => {
-            if (el.dataset.goodsEditorInit) return;
-            if (isGoodsDataFormat(el.value)) {
-                el.dataset.goodsEditorInit = '1';
-                initField(el);
+        // Target all textareas in edit form that match Goods field pattern
+        document.querySelectorAll('textarea').forEach(ta => {
+            const name = ta.getAttribute('name') || '';
+            if (isGoodsField(name) || isGoodsDataFormat(ta.value)) {
+                initField(ta);
             }
         });
     }
 
-    /** Kiểm tra value có phải GoodsData format không */
-    function isGoodsDataFormat(raw) {
-        if (!raw || raw.trim() === '') return false;
-        // Pattern: "number,number,number,...|..." ít nhất 7 fields
-        const firstChunk = raw.split('|')[0];
-        const parts = firstChunk.split(',');
-        return parts.length === 7 && parts.every(p => /^\d+$/.test(p.trim()));
-    }
-
+    // Public API
     return { init, parse, serialize };
 })();
 
-// Auto-init khi DOM ready
+// Auto-init on Edit pages
 document.addEventListener('DOMContentLoaded', () => {
-    // Chỉ init trên trang Edit
-    if (window.location.pathname.startsWith('/edit/')) {
+    if (document.querySelector('form[method=post]') && document.querySelector('textarea')) {
         GoodsDataEditor.init();
     }
 });
