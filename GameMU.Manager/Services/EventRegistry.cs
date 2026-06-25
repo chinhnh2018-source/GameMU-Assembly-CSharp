@@ -428,3 +428,4 @@ public static class EventRegistry
         ["NeedLevel"] = "Cấp yêu cầu", ["NeedVIP"] = "VIP yêu cầu", ["NeedChongZhi"] = "Nạp yêu cầu",
     };
 }
+

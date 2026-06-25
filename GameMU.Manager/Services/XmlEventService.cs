@@ -336,9 +336,18 @@ public class XmlEventService
         _cache.Clear(); // lam moi cache sau moi lan ghi (ngoai co che invalidate theo mtime)
     }
 
+    /// <summary>Tạo backup thủ công cho file gốc (không sửa nội dung).</summary>
+    public void TriggerBackup(EventFileDef def)
+    {
+        var path = FullPath(def);
+        if (!File.Exists(path)) throw new FileNotFoundException($"Không tìm thấy file: {path}");
+        BackupOnce(def, path);
+    }
+
     public List<string> ListBackups()
     {
         if (!Directory.Exists(BackupDir)) return new();
         return Directory.GetFiles(BackupDir).Select(Path.GetFileName).OrderByDescending(x => x).Take(50).ToList()!;
     }
 }
+
