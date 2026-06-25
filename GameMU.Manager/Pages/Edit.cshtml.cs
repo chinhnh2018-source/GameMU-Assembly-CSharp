@@ -55,35 +55,50 @@ public class EditModel : PageModel
         if (def == null) return NotFound();
         Def = def;
 
-        // Thu thap moi field tu form (prefix f_)
+        // Thu thập mọi field từ form (prefix f_)
         var values = new Dictionary<string, string>();
         foreach (var k in Request.Form.Keys)
         {
             if (k.StartsWith("f_"))
             {
                 var attr = k.Substring(2);
-                // chi chap nhan ten thuoc tinh XML hop le
-                if (System.Text.RegularExpressions.Regex.IsMatch(attr, "^[A-Za-z_][A-Za-z0-9_.-]*$"))
+                // chỉ chấp nhận tên thuộc tính XML hợp lệ
+                if (System.Text.RegularExpressions.Regex.IsMatch(attr, @"^[A-Za-z_][A-Za-z0-9_.-]*$"))
                     values[attr] = Request.Form[k].ToString();
             }
         }
 
         try
         {
+            // ── Validate trước khi ghi ──────────────────────────────
+            var validator = new XmlValidationService(_svc.ConfigRoot);
+            var existing = _svc.LoadRecords(def);
+            validator.Validate(def, values, string.IsNullOrEmpty(Id), existing);
+
+            // ── Ghi XML ─────────────────────────────────────────────
             if (string.IsNullOrEmpty(Id))
             {
                 if (!values.TryGetValue(def.IdAttr, out var nid) || string.IsNullOrWhiteSpace(nid))
-                { TempData["err"] = $"Phai nhap {def.IdAttr}."; return RedirectToPage(new { key = Key }); }
+                { TempData["err"] = $"Phải nhập {def.IdAttr}."; return RedirectToPage(new { key = Key }); }
                 _svc.AddRecord(def, values);
-                TempData["msg"] = $"Da them muc {nid}.";
+                TempData["msg"] = $"Đã thêm mục {nid}.";
             }
             else
             {
                 _svc.UpdateRecord(def, Id, values);
-                TempData["msg"] = $"Da luu muc {Id}.";
+                TempData["msg"] = $"Đã lưu mục {Id}.";
             }
         }
-        catch (Exception ex) { TempData["err"] = ex.Message; }
+        catch (InvalidOperationException ex)
+        {
+            // Lỗi validation — hiển thị cho user
+            TempData["err"] = ex.Message;
+            return Page();
+        }
+        catch (Exception ex)
+        {
+            TempData["err"] = ex.Message;
+        }
         return RedirectToPage("/File", new { key = Key });
     }
 
