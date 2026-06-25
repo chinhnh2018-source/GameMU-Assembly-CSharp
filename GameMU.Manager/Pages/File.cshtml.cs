@@ -28,7 +28,7 @@ public class FileModel : PageModel
     public int TotalPages { get; private set; }
 
     // FK lookups for each record
-    public Dictionary<string, List<ForwardLink>> ForwardLinks { get; } = new();
+    public Dictionary<string, List<ResolvedLink>> ForwardLinks { get; } = new();
     public Dictionary<string, List<BackReference>> BackRefs { get; } = new();
     // Known FK fields map: fieldName -> ForeignKeyRef
     public Dictionary<string, ForeignKeyRef> FkFields { get; } = new();
