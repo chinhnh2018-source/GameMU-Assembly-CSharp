@@ -86,6 +86,8 @@ public static class ModuleRegistry
         new() { Id="links",       Name="Liên kết XML",          Icon="share",          Page="/Links",
             Description="Quan hệ giữa các file + đối soát GroupID, GoodsID" },
 
+
+
         new() { Id="goods-audit", Name="Đối soát mã vật phẩm", Icon="search",         Page="/GoodsAudit",
             Description="Quét toàn bộ Config, đối soát mọi tham chiếu với Goods.xml" },
 
