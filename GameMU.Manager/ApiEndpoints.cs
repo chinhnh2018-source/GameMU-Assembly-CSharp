@@ -302,3 +302,54 @@ public static class ApiEndpoints
 
 /// Request body cho PUT /api/params/{name}
 public record ParamUpdateRequest(string Value);
+
+        // ─── Export ZIP ──────────────────────────────────────────────
+        api.MapGet("/export", (
+            [FromQuery] string? keys,
+            [FromServices] ZipService zip) =>
+        {
+            var filterKeys = string.IsNullOrEmpty(keys)
+                ? null
+                : keys.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
+
+            try
+            {
+                var data = zip.ExportAll(filterKeys);
+                var filename = $"GameMU_Config_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+                return Results.File(data, "application/zip", filename);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message, title: "Lỗi export");
+            }
+        })
+        .WithSummary("Xuất XML files thành ZIP. ?keys=k1,k2 để chọn file (mặc định: tất cả)");
+
+        // ─── Import ZIP ───────────────────────────────────────────────
+        api.MapPost("/import", async (
+            HttpRequest request,
+            [FromServices] ZipService zip) =>
+        {
+            if (!request.HasFormContentType)
+                return Results.BadRequest(new { error = "Upload form với file .zip." });
+
+            var file = request.Form.Files.FirstOrDefault();
+            if (file == null || file.Length == 0)
+                return Results.BadRequest(new { error = "Không có file được upload." });
+
+            if (!file.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { error = "Chỉ chấp nhận file .zip." });
+
+            using var stream = file.OpenReadStream();
+            var (imported, skipped, errors) = zip.ImportZip(stream);
+            return Results.Ok(new
+            {
+                success = errors.Count == 0,
+                imported, skipped, errors,
+                message = $"Đã import {imported} file. Bỏ qua {skipped}. Lỗi: {errors.Count}."
+            });
+        })
+        .WithSummary("Nhập ZIP bundle — ghi đè XML files (tự backup trước)");
+
+    }
+}
